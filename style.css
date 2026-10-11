@@ -1,0 +1,48 @@
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+html,body{margin:0;height:100%;background:#1a0f08;color:#fff;font-family:system-ui,sans-serif;overflow:hidden;touch-action:manipulation}
+#app{max-width:480px;margin:0 auto;height:100%;display:flex;flex-direction:column;padding:6px 8px env(safe-area-inset-bottom)}
+#top{display:flex;justify-content:space-between;font-weight:700;font-size:18px;padding:4px 2px}
+#combo.gold{color:#ffd23f}
+.meter{flex:1;margin:3px 2px}.meter label{font-size:12px;opacity:.9}
+.row{display:flex}
+.bar{position:relative;height:14px;background:#3a2a1e;border-radius:7px;overflow:hidden}
+.big .bar{height:26px}
+.fill{height:100%;width:0;background:#6cf;transition:width .15s}
+#bfill{background:#ffdd57}#tfill{background:#4fc3f7}#sfill{background:#9ccc65}#hfill{background:#ff4f8b}
+#pfill{position:absolute;left:0;top:0;height:100%;background:rgba(255,255,255,.55);width:0}
+#gold{position:absolute;top:0;height:100%;background:#ffb300;opacity:.7}
+.mark{position:absolute;top:0;width:2px;height:100%;background:#ff0}.mark.red{background:#f33}
+.blink{animation:bl .5s infinite}.blinkfast{animation:bl .2s infinite}
+@keyframes bl{50%{opacity:.3}}
+.redborder{outline:2px solid #f33}
+#hmeter{visibility:hidden}
+#scene{flex:1;position:relative;background:linear-gradient(#3b2414,#24160c);border-radius:12px;margin:6px 0;overflow:hidden}
+#bubble{position:absolute;left:8px;right:8px;top:8px;background:#fff;color:#222;border-radius:14px;padding:8px 12px;font-size:15px;font-weight:600;opacity:0;transition:opacity .2s;z-index:5}
+#bubble.show{opacity:1}
+#bubble:before{content:"Make: ";color:#c60}
+#chars{position:absolute;top:30%;width:100%;display:flex;justify-content:space-around;font-size:64px}
+#woman{transition:opacity .5s}
+#counter{position:absolute;bottom:26%;left:0;right:0;height:14px;background:#6d4321;border-top:3px solid #a0682f}
+#items{position:absolute;bottom:6%;left:0;right:0;display:flex;justify-content:space-around;align-items:center}
+#glass{font-size:56px;min-width:80px;height:80px;text-align:center;line-height:80px;border-radius:12px}
+#glass.has{background:rgba(255,255,255,.08);cursor:pointer}
+#glass small{display:block;font-size:12px;line-height:12px}
+#bowl{font-size:44px;position:relative}#bowl.empty{opacity:.3}
+#bowlc{position:absolute;right:-8px;top:-4px;font-size:14px;background:#c60;border-radius:8px;padding:0 5px}
+#wc{font-size:40px;background:none;border:none}
+#skool{position:absolute;left:50%;top:55%;transform:translateX(-50%);display:none;font-size:22px;padding:10px 18px;background:#ffd23f;border:none;border-radius:20px;font-weight:800;z-index:6}
+#offer{position:absolute;right:6px;top:22%;background:#ff4f8b;border-radius:12px;padding:8px;display:none;z-index:6;text-align:center;max-width:58%}
+#offer button{font-size:24px;width:52px;margin:4px;border:none;border-radius:10px}
+#away{position:absolute;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;font-size:28px;z-index:7;text-align:center}
+#buttons{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding-bottom:6px}
+#buttons button{font-size:14px;padding:8px 0;border:none;border-radius:12px;background:#f0a020;color:#222;font-weight:700;line-height:1.3}
+#buttons button:active{transform:scale(.95)}
+#buttons button:disabled{opacity:.4}
+#buttons button[data-d=vesi]{background:#7ec8e3}
+#buttons button[data-s]{background:#d9b38c}
+#overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:20}
+#panel{background:#2b1a0e;border:2px solid #f0a020;border-radius:16px;padding:18px;max-width:420px;width:92%;max-height:90%;overflow:auto;text-align:center}
+#panel h1{margin:4px 0;color:#ffd23f}#panel button{font-size:20px;padding:12px 26px;border:none;border-radius:14px;background:#ffd23f;font-weight:800;margin-top:10px}
+#panel table{margin:8px auto;text-align:left;font-size:14px}
+.stars{font-size:40px;color:#ffd23f}
+.ghost{text-shadow:8px 0 0 rgba(255,255,255,.35)}
