@@ -70,3 +70,10 @@ html,body{margin:0;height:100%;background:#1a0f08;color:#fff;font-family:system-
 .meter.big,.row{flex:none}
 #gold{z-index:1;opacity:.55;border-left:2px solid #ffd23f;border-right:2px solid #ffd23f}
 .mark{z-index:2}
+.countdown{position:absolute;left:0;right:0;top:40px;text-align:center;font-size:110px;font-weight:900;color:#ffd23f;text-shadow:0 0 20px #ff4f8b}
+.glassL,.glassR{position:absolute;top:80px;font-size:52px;width:48px;text-align:center}
+.glassR{transform:scaleX(-1)}
+.meet{position:absolute;left:50%;top:70px;width:2px;height:80px;background:rgba(255,255,255,.4)}
+.tscore{position:absolute;right:10px;top:4px;font-size:34px;font-weight:900;color:#ffd23f}
+.osu{position:absolute;border-radius:50%;background:radial-gradient(#ff8fb8,#e91e63);border:3px solid #fff;box-shadow:0 0 10px #ff4f8b}
+.osuring{position:absolute;inset:-3px;border:3px solid #ffd23f;border-radius:50%}

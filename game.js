@@ -1,20 +1,20 @@
 // KALJA! – Päivä 1, versio 2. Kaikki säädettävät arvot ovat CONFIGissa (ks. docs/kalja_paiva1_GDD.md).
 const CONFIG = {
-  version: 'v2',
+  version: 'v3',
   roundSeconds: 180, gameMinPerSec: 2, startHour: 20,
   promille: { start: 0.8, goldMin: 0.8, goldMax: 1.6, warn: 1.8, vomitBase: 2.0, passWarn: 2.5, passOut: 2.8, max: 3.0,
-              recBase: 0.010, recPerPromille: 0.0125 },
+              recBase: 0.010, recPerPromille: 0.005 },
   bladder: { start: 10, passive: 0.2, passiveRush: 0.25, warn: 75, crit: 90, toiletSec: 5, toiletPromille: -0.10, toiletStomach: -10 },
   thirst: { start: 60, regen: 0.3, lowLimit: 15, dryComboPenalty: 2 },
   stomach: { start: 0, drain: 0.8, vomitStart: 60, vomitPerPoint: 0.01 },
   vomit: { animSec: 4, drinksLost: 2, promille: -0.40, points: -200, allowed: 1 },
   orderSec: 0.5,
   drinks: {
-    kalja:   { name:'Kalja',   icon:'🍺', sips:5, sipSec:0.5, prom:0.25, absorb:10, bladder:12, thirst:-10, stomach:6, points:100, burpChance:0.3 },
-    whisky:  { name:'Whisky',  icon:'🥃', sips:4, sipSec:0.8, prom:0.35, absorb:15, bladder:4,  thirst:-15, stomach:3, points:150 },
-    shotti:  { name:'Shotti',  icon:'🧪', sips:1, sipSec:0.5, prom:0.30, absorb:2, fade:0.15, fadeSec:15, bladder:3, thirst:-4, stomach:2, points:60 },
-    drinkki: { name:'Drinkki', icon:'🍹', sips:3, sipSec:0.6, prom:0.22, absorb:8,  bladder:8,  thirst:-3,  stomach:6, points:120, womanInterest:5 },
-    vesi:    { name:'Vesi',    icon:'💧', sips:3, sipSec:0.5, prom:-0.10, absorb:10, bladder:10, thirst:20, stomach:5, points:0, water:true },
+    kalja:   { name:'Kalja',   icon:'🍺', sips:5, sipSec:0.5, prom:0.36, absorb:4, bladder:12, thirst:-10, stomach:6, points:100, burpChance:0.3 },
+    whisky:  { name:'Whisky',  icon:'🥃', sips:4, sipSec:0.8, prom:0.45, absorb:6, bladder:4,  thirst:-15, stomach:3, points:150 },
+    shotti:  { name:'Shotti',  icon:'🧪', sips:1, sipSec:0.5, prom:0.42, absorb:1.5, fade:0.12, fadeSec:15, bladder:3, thirst:-4, stomach:2, points:60 },
+    drinkki: { name:'Drinkki', icon:'🍹', sips:3, sipSec:0.6, prom:0.30, absorb:4,  bladder:8,  thirst:-3,  stomach:6, points:120, womanInterest:5 },
+    vesi:    { name:'Vesi',    icon:'💧', sips:3, sipSec:0.5, prom:-0.10, absorb:5, bladder:10, thirst:20, stomach:5, points:0, water:true },
   },
   snacks: {
     pahkinat: { name:'Pähkinät', icon:'🥜', eatSec:1.5, thirstPerSec:2, thirstSec:15, thirstNow:0, stomach:8, prom:-0.02, cost:150 },
@@ -23,27 +23,31 @@ const CONFIG = {
   bowl: { portions: 3, refillSec: 30, refillSecLate: 40 },
   overeat: { count: 3, windowSec: 20, extraStomach: 10 },
   woman: {
-    arriveZoneSec: 20, arriveHour: 21, startInterest: 30, upInZone: 0.5, downOutZone: 2, cooldownSec: 30,
-    firstTaskSec: 5, taskEveryMin: 8, taskEveryMax: 13,          // tehtäviä vain kultaisella alueella
-    successInterest: 20, failInterest: -15, maxLevel: 5,
+    arriveZoneSec: 12, arriveHour: 21, startWet: 10, upInZone: 0.15, downOutZone: 1.0, cooldownSec: 25,
+    firstTaskSec: 4, taskEveryMin: 6, taskEveryMax: 10,           // tehtäviä vain kultaisella alueella
+    taskWetMax: 25,          // laatu 0..1 × tämä = lisää kosteutta
+    failWet: -6,             // epäonnistuminen kuivattaa hieman
+    countdownSec: 3,
     perkEvery: 25,                                                // taso 3+: tarjoaa snackin tai drinkin
     names: [['Riikka','Riitta','Riina'],['Sanna','Saana','Hanna'],['Minna','Minja','Mimmi'],['Jenni','Jonna','Janni'],['Tiina','Tiia','Tinja']],
+    // Tasot laukeavat kosteusrajoista (0..100). Saavutettu taso säilyy.
     levels: [
-      { name:'Ei kiinnostunut', gesture:'' },
-      { name:'Ei kiinnostunut (vielä)', gesture:'🙂', text:'Hän hymähtää. Ihan kiva alku.' },
-      { name:'Numero saatu', gesture:'📱', text:'Hän kirjoittaa numeronsa sun käteen! Nähdään toistekin.', bonus:300 },
-      { name:'Läheisyyttä', gesture:'🤗', text:'Hän nojaa lähemmäs ja koskettaa käsivartta. Uuh.' },
-      { name:'Pusu saatu', gesture:'💋', text:'MUAH! Koko baari viheltää.', bonus:1000 },
-      { name:'Pano onnistui', gesture:'🚕❤️', text:'"Lähdetäänkö meille?" Taksi odottaa!', bonus:3000 },
+      { at:0,   name:'Ei kiinnostunut', gesture:'' },
+      { at:15,  name:'Kiinnostunut', gesture:'🙂', text:'Hän hymyilee. Jatka samaan malliin!' },
+      { at:35,  name:'Numero saatu', gesture:'📱', text:'Hän kirjoittaa numeronsa sun käteen! Nähdään toistekin.', bonus:300 },
+      { at:55,  name:'Läheisyyttä', gesture:'🤗', text:'Hän nojaa lähemmäs ja koskettaa käsivartta. Uuh.' },
+      { at:78,  name:'Pusu saatu', gesture:'💋', text:'MUAH! Koko baari viheltää.', bonus:1000 },
+      { at:100, name:'Pano onnistui', gesture:'🚕❤️', text:'"Lähdetäänkö meille?" Taksi odottaa!', bonus:3000 },
     ],
+    pantiesStages: [[0,'kuivat'],[34,'kosteat'],[67,'märät'],[100,'läpimärät']],
   },
   tasks: {
-    // d = humala-aste 0..1 (kultaisen alueen ala- -> yläraja). Kaikki "lerp(helppo, vaikea)".
-    vitsi:  { zoneW:[26,12], speed:[55,120], jitter:[0,8], timeout:6 },
-    skoolaus:{ ringStart:200, target:70, dur:[1.7,1.1], tol:[18,9], jitter:[0,14] },
-    tikka:  { amp:[35,85], speed:[1.2,2.2], hitR:32, timeout:7 },
-    tanssi: { beatMs:[620,480], tolMs:[150,90], need:3, visualJitterMs:[0,70] },
-    nimi:   { timeout:6, blurPx:[0,3], similarFrom:0.5 },
+    // d = humala-aste 0..1 (kultaisen alueen ala- -> yläraja). [helppo, vaikea]. Jokainen tehtävä antaa laadun 0..1.
+    vitsi:  { zoneW:[28,14], speed:[55,115], jitter:[0,8], timeout:6, minQ:0.35 },
+    skoolaus:{ dur:[1.6,1.0], tolSec:[0.20,0.11], minQ:0.25 },      // lasit liukuvat reunoilta, kohtaavat ajassa dur
+    tikka:  { amp:[35,85], speed:[1.0,2.0], boardR:100, accept:7 },  // ei aikarajaa; 10-rengas, 7+ hyväksytään
+    tanssi: { circles:6, spawnMs:[750,520], lifeSec:[1.5,0.95], radius:[38,30], wobble:[0,14], need:0.3 },
+    nimi:   { timeout:6, blurPx:[0,3], similarFrom:0.5, minQ:0.5 },
   },
   combo: { windowSec: 10, windowLate: 8, zoneBonus: 0.5, tiers: [[8,3],[5,2],[3,1.5],[0,1]] },
   skool: { windowSec: 2.5, points: 50, speedup: 0.3 },
@@ -236,23 +240,34 @@ function vomit(){
 }
 
 // ================= NAINEN =================
+// w.interest = pikkuhousujen kosteus 0..100. Taso = korkein saavutettu kosteusraja (säilyy).
 function womanLeave(){ const w=S.w; w.state='LAHTEE'; w.timer=CONFIG.woman.cooldownSec; w.interest=0; w.zoneAcc=0; }
+function addWet(v){
+  const W=CONFIG.woman, w=S.w; w.interest=clamp(w.interest+v,0,100);
+  let lv=w.level; while(lv<W.levels.length-1 && w.interest>=W.levels[lv+1].at) lv++;
+  w.maxWet=Math.max(w.maxWet||0,w.interest);
+  if(lv>w.level){ w.level=lv; const L=W.levels[lv]; if(L.bonus) S.bonusPts+=L.bonus;
+    if(lv===4) sfx('kiss'); sfx('success'); buzz('success'); S.hintUntil=0;
+    hint('lvl'+lv, `${L.text}${L.bonus?' +'+L.bonus+' p':''}  (×${CONFIG.score.levelMult[lv]})`, 5, 'woman'); S.hintUntil=S.t+3;
+    if(lv>=W.levels.length-1){ S.leaving=true; setTimeout(()=>end('nainen'),1500); }
+    return true; }
+  return false;
+}
 function updateWoman(dt, z){
   const W=CONFIG.woman, w=S.w;
   if(w.state==='POISSA'){ if(z) w.zoneAcc+=dt; const hour=CONFIG.startHour+S.t*CONFIG.gameMinPerSec/60;
     if(w.zoneAcc>=W.arriveZoneSec && hour>=W.arriveHour){
-      w.state='PAIKALLA'; w.interest=Math.max(W.startInterest, w.level*15); w.taskTimer=W.firstTaskSec; w.perkTimer=W.perkEvery; sfx('giggle');
+      w.state='PAIKALLA'; w.interest=Math.max(W.startWet, W.levels[w.level].at*0.8); w.taskTimer=W.firstTaskSec; w.perkTimer=W.perkEvery; sfx('giggle');
       if(!w.met){ w.met=true; const gi=Math.floor(Math.random()*W.names.length); w.nameGroup=gi; w.name=W.names[gi][Math.floor(Math.random()*3)];
         S.hintUntil=0; hint('name',`Moi! Mä oon ${w.name}. Sä näytät hauskalta.`,4,'woman'); S.hintUntil=S.t+3.5; }
       else { S.hintUntil=0; hint('back','Ai sä oot vielä täällä? Hyvä! 😏',4,'woman'); }
     } return; }
   if(w.state==='LAHTEE'){ w.timer-=dt; if(w.timer<=0) w.state='POISSA'; return; }
   if(S.away>0 && S.awayKind==='wc') return;
-  w.interest+=(z?W.upInZone:-W.downOutZone)*dt;
+  addWet((z?W.upInZone:-W.downOutZone)*dt); if(S.leaving) return;
   if(!z && S.p<CONFIG.promille.goldMin) hint(19,'Sä alat olla tylsä. Kalja piristäis!');
   if(!z && S.p>CONFIG.promille.goldMax) hint('toodrunk','Sä sammalat. Hän ei ymmärrä sanaakaan. Vettä!');
-  if(w.interest<20) hint(18,'Hän vilkuilee ovelle. Sano jotain hauskaa!');
-  w.interest=clamp(w.interest,0,100);
+  if(w.interest<8) hint(18,'Hän vilkuilee ovelle. Sano jotain hauskaa!');
   if(w.interest<=0){ womanLeave(); hint('left','Ja sinne hän meni... Ehkä hän palaa.',2); sfx('fail'); return; }
   if(w.level>=3){ w.perkTimer-=dt; if(w.perkTimer<=0 && canAct()){ w.perkTimer=W.perkEvery;
     if(!S.glass && S.ordering<=0 && Math.random()<0.5){ order('drinkki',true); hint('perkd','Mä tarjoon tän. Kippis, komistus! 🍹',2,'woman'); }
@@ -260,62 +275,86 @@ function updateWoman(dt, z){
   if(z){ w.taskTimer-=dt; if(w.taskTimer<=0 && canAct()) startTask(); }
 }
 const TASK_TITLES={vitsi:'😂 Vitsin ajoitus',skoolaus:'🥂 Skoolaus',tikka:'🎯 Tikanheitto',tanssi:'💃 Tanssi',nimi:'🧠 Mikä mun nimi oli?'};
+const TASK_HELP={vitsi:'Napauta kun osoitin on "hauska"-alueen keskellä!',skoolaus:'Lasit liukuvat toisiaan kohti – napauta kun ne kohtaavat!',
+  tikka:'Ei kiirettä. Heitä kun tähtäin on keskellä. 7 tai parempi kelpaa!',tanssi:'Napauta ympyrät ennen kuin ne katoavat!',nimi:'Hän katsoo odottavasti...'};
 function startTask(){
-  const types=Object.keys(TASK_TITLES); const type=types[Math.floor(Math.random()*types.length)];
-  const d=drunkD(), T=CONFIG.tasks[type]; const k={type, d, el:0, done:false};
-  $('task').style.display='flex'; $('ttitle').textContent=TASK_TITLES[type]; const body=$('tbody'); body.innerHTML=''; body.style.filter='';
-  sfx('giggle');
-  if(type==='vitsi'){ k.zw=lerp(T.zoneW,d); k.zx=rnd(15,85-k.zw); k.pos=0; k.dir=1; k.speed=lerp(T.speed,d);
-    body.innerHTML=`<div class="track"><div class="zone" style="left:${k.zx}%;width:${k.zw}%"></div><div class="ptr" id="tptr"></div></div>`;
-    $('thint').textContent='Napauta kun osoitin on "hauska"-alueella!'; }
-  if(type==='skoolaus'){ k.dur=lerp(T.dur,d); k.tol=lerp(T.tol,d); k.jit=lerp(T.jitter,d);
-    body.innerHTML=`<div class="target" style="width:${T.target}px;height:${T.target}px"></div><div class="ring" id="tring"></div><div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:40px">🥂</div>`;
-    $('thint').textContent='Kilistä kun keltainen rengas osuu katkoviivaan!'; }
-  if(type==='tikka'){ k.amp=lerp(T.amp,d); k.sp=lerp(T.speed,d); k.ph=rnd(0,6);
-    body.innerHTML=`<div class="board"></div><div class="cross" id="tcross">✛</div>`; $('thint').textContent='Käsi heiluu... heitä kun tähtäin on keskellä!'; }
-  if(type==='tanssi'){ k.beat=lerp(T.beatMs,d)/1000; k.tol=lerp(T.tolMs,d)/1000; k.vj=lerp(T.visualJitterMs,d)/1000; k.taps=[]; k.good=0; k.countIn=2;
-    body.innerHTML=`<div class="beat" id="tbeat">💃</div>`; $('thint').textContent='Kaksi tahtia malliksi, sitten napauta 4 kertaa tahdissa!'; }
-  if(type==='nimi'){ const W=CONFIG.woman, grp=W.names[S.w.nameGroup]; let opts;
+  const types=Object.keys(TASK_TITLES); const type=window.FORCE_TASK||types[Math.floor(Math.random()*types.length)];
+  const k={type, d:drunkD(), el:0, done:false, phase:'count', cd:CONFIG.woman.countdownSec, lastBeep:-1};
+  $('task').style.display='flex'; $('ttitle').textContent=TASK_TITLES[type]; $('tbody').innerHTML='<div class="countdown" id="tcd"></div>'; $('tbody').style.filter='';
+  $('thint').textContent=TASK_HELP[type]; sfx('giggle');
+  S.task=k; S.w.typesSeen=S.w.typesSeen||{}; S.w.countdowns=(S.w.countdowns||0)+1;
+}
+function setupTask(k){
+  const d=k.d, T=CONFIG.tasks[k.type], body=$('tbody'); body.innerHTML=''; k.phase='play'; k.el=0;
+  if(k.type==='vitsi'){ k.zw=lerp(T.zoneW,d); k.zx=rnd(15,85-k.zw); k.pos=0; k.dir=1; k.speed=lerp(T.speed,d);
+    body.innerHTML=`<div class="track"><div class="zone" style="left:${k.zx}%;width:${k.zw}%"></div><div class="ptr" id="tptr"></div></div>`; }
+  if(k.type==='skoolaus'){ k.dur=lerp(T.dur,d); k.tol=lerp(T.tolSec,d);
+    body.innerHTML=`<div class="glassL" id="tgl">🍺</div><div class="glassR" id="tgr">🍺</div><div class="meet"></div>`; }
+  if(k.type==='tikka'){ k.amp=lerp(T.amp,d); k.sp=lerp(T.speed,d); k.ph=rnd(0,6);
+    const R=T.boardR; let g=[]; for(let i=10;i>=1;i--){ const r=(11-i)*R/10; } // renkaat piirretään CSS-gradientilla
+    const stops=[]; for(let i=0;i<10;i++){ const c=i===0?'#e53935':i===1?'#ffeb3b':(i%2?'#222':'#e8d9a8'); stops.push(`${c} ${i*10}% ${(i+1)*10}%`); }
+    body.innerHTML=`<div class="board" style="width:${2*R}px;height:${2*R}px;margin:-${R}px 0 0 -${R}px;background:radial-gradient(circle closest-side,${stops.join(',')})"></div><div class="cross" id="tcross">✛</div><div class="tscore" id="tscore"></div>`; }
+  if(k.type==='tanssi'){ k.spawn=lerp(T.spawnMs,d)/1000; k.life=lerp(T.lifeSec,d); k.rad=lerp(T.radius,d); k.wob=lerp(T.wobble,d); k.circles=[]; k.spawned=0; k.qsum=0; k.hits=0; }
+  if(k.type==='nimi'){ const W=CONFIG.woman, grp=W.names[S.w.nameGroup]; let opts;
     if(d>=T.similarFrom) opts=grp.slice(); else { opts=[S.w.name]; while(opts.length<3){ const g=W.names[Math.floor(Math.random()*W.names.length)]; const n=g[Math.floor(Math.random()*3)]; if(!opts.includes(n)&&!grp.includes(n)) opts.push(n);} }
     opts.sort(()=>Math.random()-0.5);
     body.innerHTML='<div class="names">'+opts.map(n=>`<button data-n="${n}">${n}</button>`).join('')+'</div>';
     body.style.filter=`blur(${lerp(T.blurPx,d).toFixed(1)}px)`;
-    body.querySelectorAll('button').forEach(b=>b.addEventListener('pointerdown',e=>{ e.preventDefault(); e.stopPropagation(); if(!S.task) return; taskResult(b.dataset.n===S.w.name, b.dataset.n===S.w.name?'':`"${b.dataset.n}?! Mä oon ${S.w.name}!"`); }));
-    $('thint').textContent='Hän katsoo odottavasti...'; }
-  S.task=k;
+    body.querySelectorAll('button').forEach(b=>b.addEventListener('pointerdown',e=>{ e.preventDefault(); e.stopPropagation(); if(!S.task||S.task.phase!=='play') return;
+      const ok=b.dataset.n===S.w.name; taskResult(ok? 1-(1-T.minQ)*clamp(k.el/T.timeout,0,1) : 0, ok?'':`"${b.dataset.n}?! Mä oon ${S.w.name}!"`); })); }
 }
 function updateTask(dt){
   const k=S.task, T=CONFIG.tasks[k.type]; k.el+=dt;
+  if(k.phase==='count'){ const left=k.cd-k.el, n=Math.ceil(left); const e=$('tcd');
+    if(n!==k.lastBeep && n>0){ k.lastBeep=n; tone(660,0.15,{type:'square',vol:0.18}); buzz('sip'); }
+    if(e){ e.textContent=n>0?n:'GO!'; e.style.transform=`scale(${1+0.6*(left-Math.floor(left))})`; }
+    if(left<=0){ tone(1320,0.3,{type:'square',vol:0.2}); setupTask(k); } return; }
   if(k.type==='vitsi'){ k.pos+=k.dir*k.speed*dt; if(k.pos>100){k.pos=100;k.dir=-1;} if(k.pos<0){k.pos=0;k.dir=1;}
-    k.show=clamp(k.pos+Math.sin(k.el*9)*lerp(T.jitter,k.d),0,100); $('tptr').style.left=k.show+'%'; if(k.el>T.timeout) taskResult(false,'Liian hidas. Vitsi lässähti.'); }
-  if(k.type==='skoolaus'){ const r=T.ringStart*(1-k.el/k.dur); k.r=r; const j=Math.sin(k.el*13)*k.jit; const e=$('tring'); e.style.width=e.style.height=Math.max(0,r)+'px'; e.style.marginLeft=j+'px';
-    if(r<=0) taskResult(false,'Hän joi jo. Sä missasit kilistyksen.'); }
+    k.show=clamp(k.pos+Math.sin(k.el*9)*lerp(T.jitter,k.d),0,100); $('tptr').style.left=k.show+'%'; if(k.el>T.timeout) taskResult(0,'Liian hidas. Vitsi lässähti.'); }
+  if(k.type==='skoolaus'){ const b=$('tbody'), W=b.clientWidth, half=W/2-30, f=k.el/k.dur; // f=1 -> kohtaavat keskellä
+    const x=half*(1-f); $('tgl').style.left=(W/2-30-x-24)+'px'; $('tgr').style.left=(W/2+x-24+30)+'px';
+    if(k.el>k.dur+k.tol){ taskResult(0,'Liian myöhään! Lasit kolahti ja kalja läikkyi syliin.'); } }
   if(k.type==='tikka'){ k.x=Math.sin(k.el*k.sp*1.3+k.ph)*k.amp+Math.sin(k.el*5.1)*k.amp*0.25; k.y=Math.cos(k.el*k.sp*0.9)*k.amp*0.8+Math.sin(k.el*4.3)*k.amp*0.2;
-    const e=$('tcross'), b=$('tbody'); e.style.left=(b.clientWidth/2+k.x)+'px'; e.style.top=(b.clientHeight/2+k.y)+'px'; if(k.el>T.timeout) taskResult(false,'Tikka jäi käteen. Noloa.'); }
-  if(k.type==='tanssi'){ const ph=((k.el+k.vj*Math.sin(k.el*3))%k.beat)/k.beat; const e=$('tbeat'); e.style.transform=`scale(${1+0.35*Math.max(0,1-ph*4)})`;
-    const bi=Math.floor(k.el/k.beat); if(bi<k.countIn) $('thint').textContent=`Malli: ${bi+1}...`; else $('thint').textContent=`Sun vuoro! ${k.taps.length}/4`;
-    if(k.el>(k.countIn+5)*k.beat) finishDance(); }
-  if(k.type==='nimi' && k.el>T.timeout) taskResult(false,`Hiljaisuus... "Mä oon ${S.w.name}. Muistitko edes?"`);
+    const e=$('tcross'), b=$('tbody'); e.style.left=(b.clientWidth/2+k.x)+'px'; e.style.top=(b.clientHeight/2+k.y)+'px'; }
+  if(k.type==='tanssi'){ const b=$('tbody');
+    if(k.spawned<T.circles && k.el>=k.spawned*k.spawn){ const c={id:k.spawned, born:k.el, x:rnd(k.rad+10,b.clientWidth-k.rad-10), y:rnd(k.rad+5,b.clientHeight-k.rad-5), hit:false};
+      const el=document.createElement('div'); el.className='osu'; el.style.width=el.style.height=2*k.rad+'px'; el.innerHTML='<div class="osuring"></div>'; b.appendChild(el); c.el=el; k.circles.push(c); k.spawned++; tone(880,0.05,{vol:0.06}); }
+    for(const c of k.circles){ if(c.dead) continue; const age=(k.el-c.born)/k.life; if(age>=1){ c.dead=true; c.el.remove(); continue; }
+      const wx=c.x+Math.sin(k.el*3+c.id)*k.wob, wy=c.y+Math.cos(k.el*2.6+c.id)*k.wob; c.wx=wx; c.wy=wy;
+      c.el.style.left=(wx-k.rad)+'px'; c.el.style.top=(wy-k.rad)+'px'; c.el.style.transform=`scale(${1-0.55*age})`; c.el.firstChild.style.transform=`scale(${2-age})`; }
+    if(k.spawned>=T.circles && k.circles.every(c=>c.dead)) finishDance(); }
+  if(k.type==='nimi' && k.el>T.timeout) taskResult(0,`Hiljaisuus... "Mä oon ${S.w.name}. Muistitko edes?"`);
 }
 function taskTap(x,y){
-  const k=S.task; if(!k) return; const T=CONFIG.tasks[k.type];
-  if(k.type==='vitsi'){ const ok=k.show>=k.zx&&k.show<=k.zx+k.zw; taskResult(ok, ok?'':'Vitsi tuli väärään saumaan. Krik krik.'); }
-  if(k.type==='skoolaus'){ const ok=Math.abs(k.r-T.target)<=k.tol; sfx('slam'); taskResult(ok, ok?'':(k.r>T.target?'Liian aikaisin! Läikytit hänen juomansa.':'Liian myöhään, hän joi jo.')); }
-  if(k.type==='tikka'){ const ok=Math.hypot(k.x,k.y)<=T.hitR; taskResult(ok, ok?'':'Tikka osui seinään. Baarimikko väistää.'); }
-  if(k.type==='tanssi'){ const bi=Math.floor(k.el/k.beat); if(k.el<k.countIn*k.beat-k.tol) return; const near=Math.round(k.el/k.beat)*k.beat; if(Math.abs(k.el-near)<=k.tol) k.good++; k.taps.push(k.el); sfx('click'); buzz('sip'); if(k.taps.length>=4) finishDance(); }
+  const k=S.task; if(!k || k.phase!=='play') return; const T=CONFIG.tasks[k.type];
+  if(k.type==='vitsi'){ const c=k.zx+k.zw/2, off=Math.abs(k.show-c)/(k.zw/2); const ok=off<=1;
+    taskResult(ok? 1-(1-T.minQ)*off : 0, ok?'':'Vitsi tuli väärään saumaan. Krik krik.'); }
+  if(k.type==='skoolaus'){ const e=Math.abs(k.el-k.dur); if(e>k.tol){ tone(200,0.2,{type:'sawtooth',vol:0.1}); taskResult(0, k.el<k.dur?'Liian aikaisin! Kalja läikkyi pöydälle.':'Liian myöhään! Kalja läikkyi syliin.'); return; }
+    const q=1-(1-T.minQ)*(e/k.tol); clink(q); taskResult(q,''); }
+  if(k.type==='tikka'){ const R=T.boardR, dist=Math.hypot(k.x,k.y), sc=dist>=R?0:10-Math.floor(dist/(R/10)); k.score=sc;
+    $('tscore').textContent=sc?sc:'ohi'; sfx('slam');
+    if(sc<T.accept) taskResult(0, sc?`${sc} pistettä. Ei ihan... Hän nauraa sulle, ei sun kanssa.`:'Tikka osui seinään. Baarimikko väistää.');
+    else taskResult([0,0,0,0,0,0,0,0.4,0.6,0.8,1.0][sc], sc===10?'':''); }
+  if(k.type==='tanssi'){ let best=null, bd=1e9; for(const c of k.circles){ if(c.dead) continue; const dd=Math.hypot(x-c.wx,y-c.wy); if(dd<bd){bd=dd;best=c;} }
+    const age=best?(k.el-best.born)/k.life:1, r=k.rad*(1-0.55*age);
+    if(best && bd<=r*1.15){ const acc=1-clamp(bd/r,0,1), early=1-age, q=0.5*acc+0.5*early; k.qsum+=q; k.hits++; best.dead=true; best.el.remove(); tone(700+k.hits*120,0.08,{type:'triangle',vol:0.15}); buzz('sip'); }
+    if(k.spawned>=T.circles && k.circles.every(c=>c.dead)) finishDance(); }
 }
-function finishDance(){ const k=S.task, ok=k.good>=CONFIG.tasks.tanssi.need; taskResult(ok, ok?'':`Tahdissa ${k.good}/4. Astuit hänen varpaille.`); }
-function taskResult(ok, failText){
+function clink(q){ // tarkempi = kovempi ja kirkkaampi kilinä
+  tone(2200+800*q,0.25+0.5*q,{type:'triangle',vol:0.05+0.4*q}); tone(3300+1200*q,0.2+0.4*q,{vol:0.03+0.25*q}); noise(0.08,{type:'highpass',f:4000,vol:0.1+0.3*q}); buzz(q>0.8?'success':'sip'); }
+function finishDance(){ const k=S.task; if(!k||k.done) return; const T=CONFIG.tasks.tanssi, q=k.qsum/T.circles;
+  taskResult(q>=T.need?q:0, q>=T.need?'':`Osuit ${k.hits}/${T.circles}. Astuit hänen varpaille.`); }
+const Q_TEXT=q=>q>=0.9?'TÄYDELLISTÄ! 😍':q>=0.7?'Hyvä! 😊':q>=0.45?'Ihan ok 🙂':'Melkein... 😅';
+function taskResult(q, failText){
   const k=S.task; if(!k||k.done) return; k.done=true; const W=CONFIG.woman, w=S.w;
-  w.tasksDone++; w.byType[k.type]=(w.byType[k.type]||0)+1;
+  w.tasksDone++; w.byType[k.type]=(w.byType[k.type]||0)+1; w.qSum=(w.qSum||0)+q;
   $('task').style.display='none'; S.task=null; w.taskTimer=rnd(W.taskEveryMin,W.taskEveryMax); S.hintUntil=0;
-  if(ok){ w.tasksWon++; w.level=Math.min(W.maxLevel,w.level+1); w.interest=clamp(w.interest+W.successInterest,0,100);
-    sfx('success'); buzz('success'); const L=W.levels[w.level];
-    if(L.bonus){ S.bonusPts+=L.bonus; }
-    if(w.level===4) sfx('kiss'); else sfx('giggle');
-    hint('lvl'+w.level, `${L.text||'Hän nauraa!'}${L.bonus?' +'+L.bonus+' p':''}  (×${CONFIG.score.levelMult[w.level]})`, 4, 'woman');
-    if(w.level>=W.maxLevel){ setTimeout(()=>end('nainen'),1200); S.leaving=true; }
-  } else { w.interest=clamp(w.interest+W.failInterest,0,100); sfx('fail'); buzz('fail'); hint('tfail'+w.tasksDone, failText||'Hups.', 4, 'woman');
+  if(q>0){ w.tasksWon++; const gain=Math.round(q*W.taskWetMax);
+    sfx('giggle'); if(q>=0.7){ sfx('success'); buzz('success'); } else buzz('drink');
+    const extra=k.type==='tikka'?(k.score===10?' NAPAKYMPPI! 🎯':` ${k.score} pistettä.`):'';
+    hint('tok'+w.tasksDone, `${Q_TEXT(q)}${extra} +${gain} 💦`, 4, 'woman');
+    if(!addWet(gain) && k.type==='tikka' && k.score===10) flash('#ff4f8b');
+  } else { sfx('fail'); buzz('fail'); hint('tfail'+w.tasksDone, (failText||'Hups.')+` ${W.failWet} 💦`, 4, 'woman'); addWet(W.failWet);
     if(w.interest<=0){ womanLeave(); } }
 }
 
@@ -387,7 +426,7 @@ function end(reason){
   const st=S.stats, row=(a,b)=>`<tr><td>${a}</td><td><b>${b}</b></td></tr>`;
   const lvlName=S.w.met?W.levels[S.w.level].name:'Ei tavattu';
   $('panel').innerHTML=`<h1>${titles[reason][0]}</h1><p>${titles[reason][1]}</p><div class="stars">${'★'.repeat(stars)}${'☆'.repeat(3-stars)}</div><h2>${score} p</h2>
-  <p>❤️ <b>${lvlName}</b> (taso ${S.w.level}/5, tehtävät ${S.w.tasksWon}/${S.w.tasksDone})</p><table>
+  <p>❤️ <b>${lvlName}</b> (taso ${S.w.level}/5 · 💦 ${Math.round(S.w.maxWet||S.w.interest)} % · tehtäviä ${S.w.tasksWon}/${S.w.tasksDone} onnistui, keskilaatu ${S.w.tasksDone?Math.round(100*S.w.qSum/S.w.tasksDone):0} %)</p><table>
   ${row('Juomapisteet',S.drinkPts)}${row('Humalapisteet (keskiarvo '+(S.sumP/Math.max(1,S.t)).toFixed(2)+'‰)',Math.round(S.promPts))}${row('SKOOL! ×'+S.skools,S.skoolPts)}
   ${row('Naisbonukset',S.bonusPts)}${timeBonus?row('Aikabonus',timeBonus):''}${row('Oksennukset ('+S.vomits+')',-S.penaltyPts)}${row('Snack-ostot',-S.snackSpent)}
   ${row('= Pohja',Math.round(base))}${row('× Tasokerroin',mult)}${fail?row('× Rangaistus',C.failMult):''}
@@ -398,12 +437,13 @@ function end(reason){
 }
 
 // ================= PIIRTO =================
-function pantiesSVG(interest){
-  const stage=interest<34?0:interest<67?1:2, cols=['#ffd6e7','#ff8fb8','#d81b60'];
-  const drops=[[],[[24,30]],[[16,30],[24,33],[32,30],[24,38]]][stage];
-  return `<svg viewBox="0 0 48 40"><path d="M2 4 H46 L44 12 Q34 16 28 30 H20 Q14 16 4 12 Z" fill="${cols[stage]}" stroke="#fff" stroke-width="1.5"/>`+
-    `<path d="M2 4 H46" stroke="#fff" stroke-width="3"/>`+(stage>=1?`<ellipse cx="24" cy="24" rx="${3+stage*2}" ry="${2+stage*2}" fill="rgba(0,0,0,.25)"/>`:'')+
-    drops.map(([x,y])=>`<path d="M${x} ${y} q-2.5 4 0 5 q2.5 -1 0 -5z" fill="#7fd3ff"/>`).join('')+`</svg><div style="text-align:center">${['kuivat','kosteat','märät'][stage]}</div>`;
+function pantiesSVG(wet){
+  const st=CONFIG.woman.pantiesStages; let stage=0; st.forEach((x,i)=>{ if(wet>=x[0]) stage=i; });
+  const cols=['#ffd6e7','#ff8fb8','#e0407a','#a0144a'], f=wet/100;
+  const drops=[[],[[24,30]],[[16,30],[24,33],[32,30]],[[12,30],[18,34],[24,36],[30,34],[36,30],[24,40]]][stage];
+  return `<svg viewBox="0 0 48 44"><path d="M2 4 H46 L44 12 Q34 16 28 30 H20 Q14 16 4 12 Z" fill="${cols[stage]}" stroke="#fff" stroke-width="1.5"/>`+
+    `<path d="M2 4 H46" stroke="#fff" stroke-width="3"/>`+(wet>5?`<ellipse cx="24" cy="23" rx="${2+f*9}" ry="${1.5+f*7}" fill="rgba(0,0,40,${0.15+0.3*f})"/>`:'')+
+    drops.map(([x,y])=>`<path d="M${x} ${y} q-2.5 4 0 5 q2.5 -1 0 -5z" fill="#7fd3ff"/>`).join('')+`</svg><div style="text-align:center">${st[stage][1]} ${Math.round(wet)}%</div>`;
 }
 let lastPanties='';
 function render(){
@@ -423,7 +463,7 @@ function render(){
   const wp=womanPresent(), w=S.w;
   $('wpanel').style.display=wp?'flex':'none';
   if(wp){ const ps=Math.round(w.interest/4); if(ps+''!==lastPanties){ lastPanties=ps+''; $('panties').innerHTML=pantiesSVG(w.interest);} $('wlevel').textContent=`${w.name} ❤️ ${w.level}/5`; $('wstate').textContent=CONFIG.woman.levels[w.level].name; }
-  $('woman').textContent=wp?(w.level>=4?'😘':w.interest>=60?'😍':w.interest<20?'🙄':'💃'):'';
+  $('woman').textContent=wp?(w.level>=4?'😘':w.interest>=60?'😍':w.interest<10?'🙄':'💃'):'';
   $('gesture').textContent=wp?CONFIG.woman.levels[w.level].gesture:'';
   let f='😐'; if(S.p>=P.passWarn) f='😵'; else if(S.bladder>=75) f='😖'; else if(S.p>=P.warn) f='🤢'; else if(S.thirst<15) f='😫'; else if(inZone()) f=S.combo>=5?'😎':'😄'; else if(S.p<P.goldMin) f='😑';
   $('player').textContent=f;
@@ -487,7 +527,7 @@ function intro(){
   $('panel').innerHTML=`<h1>🍺 KALJA!</h1><h3>Päivä 1 – Perjantai-ilta <small>(${CONFIG.version})</small></h3><p style="text-align:left;font-size:14px">
   • Tilaa juoma alhaalta, napauta lasia = hörppy.<br>• Pidä <b style="color:#ffb300">promillet kultaisella alueella</b> (0,8–1,6‰). Mitä lähempänä yläreunaa, sitä enemmän pisteitä – mutta älä sammu!<br>
   • Kalja pitää tasaisena mutta kusettaa, whisky kuivattaa, shotti nousee ja laskee nopeasti.<br>• 🚻 ennen kuin housut kastuu. Snackit (🥣 ilmainen kulho) pitävät janon yllä.<br>
-  • Kun olet hauska (alueella), <b>nainen</b> antaa minitehtäviä. 5 onnistumista = hän lähtee mukaasi. Jokainen taso nostaa pistekerrointa.<br>
+  • Kun olet hauska (alueella), <b>nainen</b> antaa minitehtäviä (3-2-1!). Mitä paremmin onnistut, sitä märemmät pikkuhousut 💦. Läpimärät = hän lähtee mukaasi. Jokainen taso nostaa pistekerrointa.<br>
   • Kaljan jälkeen SKOOL! (nappi tai ravista puhelinta).<br>• Yksi oksennus sallitaan. Valomerkki klo 02.</p><button id="go">ALOITA ILTA</button>`;
   $('go').addEventListener('click',start); requestAnimationFrame(loop);
 }
