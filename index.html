@@ -2,35 +2,35 @@
 <html lang="fi"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<title>KALJA! – Päivä 1</title>
-<link rel="stylesheet" href="style.css">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1a0f08">
+<title>KALJA! – Päivä 1 (v2)</title>
+<link rel="stylesheet" href="style.css?v=2">
 </head><body>
 <div id="app">
-  <div id="top"><span id="clock">20:00</span><span id="score">0 p</span><span id="combo">KOMBO x1</span></div>
-  <div class="meter big"><label>PROMILLET <b id="pval">0.30‰</b></label><div class="bar" id="pbar"><div id="gold"></div><div id="pfill"></div><div class="mark" id="mwarn"></div><div class="mark red" id="mpass"></div></div></div>
+  <div id="top"><span id="clock">20:00</span><span id="score">0 p</span><span id="combo">KOMBO x1</span><button id="mute">🔊</button></div>
+  <div class="meter big"><label>PROMILLET <b id="pval">0.80‰</b></label><div class="bar" id="pbar"><div id="gold"></div><div id="pfill"></div><div class="mark" id="mwarn"></div><div class="mark red" id="mpass"></div></div></div>
   <div class="row">
     <div class="meter"><label>🚽 RAKKO</label><div class="bar" id="bbar"><div class="fill" id="bfill"></div></div></div>
     <div class="meter"><label>💧 JANO</label><div class="bar" id="tbar"><div class="fill" id="tfill"></div></div></div>
-  </div>
-  <div class="row">
     <div class="meter"><label>🤢 VATSA</label><div class="bar" id="sbar"><div class="fill" id="sfill"></div></div></div>
-    <div class="meter" id="hmeter"><label>♥ NAINEN <span id="offers"></span></label><div class="bar" id="hbar"><div class="fill" id="hfill"></div></div></div>
   </div>
   <div id="scene">
     <div id="bubble"></div>
-    <div id="chars"><div id="player">😐</div><div id="woman"></div></div>
-    <div id="offer"><div id="offertxt">Otetaanko yhdet?</div><button id="yes">✔</button><button id="no">✖</button></div>
+    <div id="wpanel"><div id="panties"></div><div><div id="wlevel"></div><div id="wstate"></div></div></div>
+    <div id="chars"><div id="player">😐</div><div id="gesture"></div><div id="woman"></div></div>
     <div id="counter"></div>
     <div id="items"><div id="glass"></div><div id="bowl">🥣<span id="bowlc"></span></div><button id="wc">🚻</button></div>
     <button id="skool">SKOOL! 📳</button>
     <div id="away"></div>
+    <div id="task"><div id="ttitle"></div><div id="tbody"></div><div id="thint"></div></div>
   </div>
   <div id="buttons">
     <button data-d="kalja">🍺<br>Kalja</button><button data-d="whisky">🥃<br>Whisky</button><button data-d="shotti">🧪<br>Shotti</button><button data-d="drinkki">🍹<br>Drinkki</button>
-    <button data-d="vesi">💧<br>Vesi</button><button data-s="pahkinat">🥜<br>150 p</button><button data-s="sipsit">🥔<br>200 p</button>
+    <button data-d="vesi">💧<br>Vesi</button><button data-s="pahkinat">🥜<br>150 p</button><button data-s="sipsit">🥔<br>200 p</button><button id="vtest">📳<br>testi</button>
   </div>
-  <div id="overlay"><div id="panel"></div></div>
+  <div id="flash"></div>
 </div>
-<script src="game.js"></script>
+<div id="overlay"><div id="panel"></div></div>
+<script src="game.js?v=2"></script>
 </body></html>

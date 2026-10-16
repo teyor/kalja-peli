@@ -1,7 +1,9 @@
 # KALJA! – Päivä 1: Perjantai-ilta
-## Pelisuunnitteludokumentti (GDD) v0.2
+## Pelisuunnitteludokumentti (GDD) v0.3 (peliversio v2)
 
-**Tekijä:** Teijo Rutanen | **Päivämäärä:** 11.10.2026 | **Versio:** v0.2 | **Laajuus:** Päivä 1 + lyhyt Päivä 2 -teaser
+**Tekijä:** Teijo Rutanen | **Päivämäärä:** 11.10.2026 | **Versio:** v0.3 (16.10.2026, vastaa peliversiota v2) | **Laajuus:** Päivä 1 + lyhyt Päivä 2 -teaser
+
+> **v0.3-muutokset:** äänet (WebAudio), haptiikka, toimiva ravistus Androidilla, näkyvämmät humalaefektit, aloitus 0,8 ‰:sta, vahvempi kalja, naisen minitehtävät (korvaavat 5 tarjottua juomaa), uusi pisteytys (humala-integraali + tasokerroin). Testiversio: https://teyor.github.io/kalja-peli/ – kaikki arvot `game.js`:n `CONFIG`-objektissa.
 
 > Kaikki tämän dokumentin numeroarvot ovat **säädettäviä lähtöarvoja** (tunable starting values). Ne on laskettu niin, että paletti toimii paperilla, mutta oikea tuntuma haetaan pelitestaamalla.
 
@@ -29,6 +31,7 @@
 | Pelin kello | 20:00 → 02:00 (valomerkki) |
 | Aikasuhde | 1 s reaaliaikaa = 2 pelin minuuttia (180 s = 6 h) |
 | Käyttö | Henkilökohtainen projekti (Teijo + kaverit), ei julkaista |
+| Laite | Testataan Androidilla (Chrome), GitHub Pages (https) |
 | Juomat | Geneerisiä, ei brändejä: Kalja, Whisky, Shotti, Drinkki (+ Vesi) |
 
 ---
@@ -47,7 +50,7 @@
 1. Nosta promillet kultaiselle alueelle.
 2. Pidä rytmi tasaisena (kombo), käy vessassa ennen kuin on pakko.
 3. Hoida janoa snackeilla (kulho tiskillä, ostot, naisen tarjoamat).
-4. Pysy alueella → nainen saapuu → hyväksy tarjouksia → lähtekää yhdessä.
+4. Pysy alueella → nainen saapuu → onnistu hänen minitehtävissään → lähtekää yhdessä (5 onnistumista).
 
 **Kierrostason silmukka:** Ilta päättyy valomerkkiin tai siihen, että nainen lähtee kanssasi → pisteet ja tähdet → "Vielä yksi ilta!"
 
@@ -65,8 +68,10 @@ Kaikki toiminnot ovat yksittäisiä napautuksia. Ei pyyhkäisyjä eikä pitkiä 
 | Juo | Napauta lasia | Kalja = 5 hörppyä, whisky = 4 (hitaat), shotti = 1, drinkki = 3, vesi = 3 |
 | Syö snack | Napauta kulhoa / snack-nappia | Syöminen vie aikaa (ks. taulukko) |
 | Vessaan | Napauta vessa-ikonia | 5 s poissa tiskiltä |
-| Hyväksy / kieltäydy naisen tarjouksesta | Napauta ✔ tai ✖ puhekuplassa | 5 s aikaa, muuten = kieltäytyminen |
-| SKOOL! (valinnainen) | Ravista puhelinta 1 s sisällä kaljan viimeisestä hörpystä | Bonus, ks. kombot |
+| Naisen minitehtävä | Napautus (ajoitus / tähtäys / valinta) | Ks. luku 7 |
+| SKOOL! | Ravista puhelinta tai napauta SKOOL!-nappia 2,5 s sisällä kaljan viimeisestä hörpystä | Bonus, ks. kombot |
+| Äänet päälle/pois | 🔊/🔇 yläpalkissa | Valinta muistetaan |
+| Laitetesti | 📳 testi -nappi | Näyttää tärinätuen, liikeanturin tapahtumat ja suurimman kiihtyvyyden |
 
 ### 3.2 Näkymän asettelu (pystyasento)
 
@@ -102,7 +107,7 @@ Asteikko 0,0–3,0 ‰. Keskellä **Kultainen alue**.
 
 | Parametri | Lähtöarvo (säädettävä) | Selitys |
 |---|---|---|
-| Aloitusarvo | 0,3 ‰ | "Otettiin pari kotona" |
+| Aloitusarvo | 0,8 ‰ (kultaisen alueen alaraja) | "Etkot hoidettu, nyt mennään!" – juotavaa tarvitaan heti |
 | Kultainen alue (Päivä 1) | 0,8–1,6 ‰ | Leveä ja armollinen |
 | Varoitusraja | 1,8 ‰ | Huone alkaa pyöriä, mittari vilkkuu keltaisena |
 | Oksennusraja (perus) | 2,0 ‰ | Laskee vatsan täyttyessä (ks. 4.4) |
@@ -111,9 +116,16 @@ Asteikko 0,0–3,0 ‰. Keskellä **Kultainen alue**.
 | Palautuminen | 0,010 + 0,0125 × promillet ‰/s | Mitä kovempi humala, sitä nopeammin laskee |
 | Imeytyminen | Juoman vaikutus tulee viiveellä (ks. juomataulukko) | Estää "piikin" yhdestä napista |
 
-**Miksi tämä kaava?** Tasaisella tahdilla (1 kalja / 8 s) promillet asettuvat noin **1,2 ‰:iin** eli suoraan kultaisen alueen keskelle. Nopeampi tahti nostaa yli, hitaampi tiputtaa alle. Rytmi on siis koko pelin ydin.
+**Miksi tämä kaava?** Kalja +0,25 ‰ (v0.3). Tahdilla 1 kalja / 10 s promillet asettuvat noin **1,2 ‰:iin**, tahdilla 1 / 8 s noin 1,7 ‰:iin eli suoraan kultaisen alueen keskelle. Nopeampi tahti nostaa yli, hitaampi tiputtaa alle. Rytmi on siis koko pelin ydin.
 
-**Humalaefektit:**
+**Humalaefektit (v0.3, koko pelinäkymä `#app`, skaalautuvat jatkuvasti):**
+
+- Huojunta: kierto ±4° per ‰ yli 0,6 ‰ + sivuttaisliike ±14 px per ‰ (1,2 ‰ ≈ ±2,4°, 2,2 ‰ ≈ ±6,4°).
+- Tuplanäkö: haamukuva (drop-shadow) yli 1,3 ‰, siirtymä 14 px per ‰.
+- Sumeus: blur yli 1,9 ‰, 2 px per ‰.
+- Yli 2,2 ‰: 15 % lasin napautuksista menee ohi.
+
+Alkuperäinen taulukko (suuntaa-antava):
 
 | Promillet | Efekti |
 |---|---|
@@ -154,7 +166,7 @@ Vatsa on yhdistetty oksennuslogiikkaan: täysi vatsa laskee oksennusrajaa.
 | Parametri | Lähtöarvo | Selitys |
 |---|---|---|
 | Aloitus | 0 | Ei ruokaa illan aikana (vain snackit) |
-| Tyhjeneminen | −0,4/s | |
+| Tyhjeneminen | −0,8/s (v0.3, ennen −0,4) | Pelkällä kaljatahdilla vatsa ei enää täyty itsestään |
 | Oksennusrajan lasku | Kun vatsa > 60: raja = 2,0 − (vatsa − 60) × 0,01 ‰ | Vatsa 100 → raja 1,6 ‰ |
 | Vatsa täynnä | 100 | Oksennus heti promilleista riippumatta |
 
@@ -164,7 +176,7 @@ Vatsa on yhdistetty oksennuslogiikkaan: täysi vatsa laskee oksennusrajaa.
 
 ### 4.5 Naisen kiinnostus (0–100)
 
-Näkyy sydänmittarina vasta, kun nainen on paikalla. Logiikka luvussa 7.
+Näkyy pikkuhousut-ikonina (kuivat → kosteat → märät) vasta, kun nainen on paikalla. Logiikka luvussa 7.
 
 ---
 
@@ -172,7 +184,7 @@ Näkyy sydänmittarina vasta, kun nainen on paikalla. Logiikka luvussa 7.
 
 | Juoma | Hörppyjä | Promillet | Imeytyminen | Rakko | Jano | Vatsa | Pisteet |
 |---|---|---|---|---|---|---|---|
-| **Kalja** | 5 × 0,5 s | +0,20 ‰ | 10 s ajan tasaisesti | +12 % | −10 | +8 | 100 |
+| **Kalja** | 5 × 0,5 s | +0,25 ‰ (v0.3) | 10 s ajan tasaisesti | +12 % | −10 | +6 | 100 |
 | **Whisky** | 4 × 0,8 s (hidas siemailu) | +0,35 ‰ | 15 s ajan tasaisesti | +4 % | −15 (kuivattaa kurkkua) | +3 | 150 |
 | **Shotti** | 1 × 0,5 s | +0,30 ‰ nopeasti, josta 0,15 ‰ "haihtuu" lisäpalautumisena 15 s:n aikana (netto +0,15) | 2 s | +3 % | −4 | +2 | 60 |
 | **Drinkki** | 3 × 0,6 s | +0,22 ‰ | 8 s ajan | +8 % | −3 (makea, ei janota) | +6 | 120 |
@@ -183,7 +195,7 @@ Näkyy sydänmittarina vasta, kun nainen on paikalla. Logiikka luvussa 7.
 - **Kalja** = tasainen pohjapöhinä, mutta pissattaa nopeasti. Pisteiden pääasiallinen lähde.
 - **Whisky** = vahva ja hidas. Iso promillenosto, pissattaa vähän, mutta kuivattaa kurkun → jano loppuu nopeasti. Hitaan siemailun takia kombo-ikkunan kanssa saa olla tarkkana. Paljon pisteitä per lasi.
 - **Shotti** = nopea nosto kultaiselle alueelle tai pelastus, kun olet pudonnut alle. Vaikutus myös katoaa nopeasti. Pissattaa vähän – hyvä valinta, kun rakko on jo täynnä.
-- **Drinkki** = keskivahva ja makea. Kuluttaa janoa tuskin lainkaan, pissattaa keskiverrosti. **Nainen tykkää:** drinkin juominen naisen ollessa paikalla antaa kiinnostusta +5.
+- **Drinkki** = keskivahva ja makea. Kuluttaa janoa tuskin lainkaan, pissattaa keskiverrosti. **Nainen tykkää:** drinkin tilaaminen naisen ollessa paikalla antaa kiinnostusta +5.
 - **Vesi** = jarru. Laskee promilleja ja palauttaa janoa, mutta täyttää rakkoa.
 
 Tilaus kestää 0,5 s. Tiskillä voi olla kerrallaan yksi juoma.
@@ -205,48 +217,55 @@ Ei muuta ruokaa kuin snackit.
 |---|---|---|
 | Kulho tiskillä | Ilmainen, täyttyy ajoittain | 3 annosta (satunnainen pähkinä/sipsi), täyttyy 30 s välein (22:00 jälkeen 40 s) |
 | Baarimikolta ostaminen | Maksetaan pisteillä | Pähkinät 150 p, sipsit 200 p |
-| Nainen tarjoaa | Kun olet hauska (kultaisella alueella ja kiinnostus ≥ 50) | 1 ilmainen pähkinäannos / 30 s, hyväksyminen +5 kiinnostus |
+| Nainen tarjoaa | Tasolta 3 alkaen | 25 s välein ilmainen pähkinäannos tai drinkki |
 
 **Ylensyönti:** 3 snackia 20 s sisällä → vatsa +10 lisää ja kaveri huomauttaa (ks. vihjeet).
 
 ---
 
-## 7. Nainen
+## 7. Nainen (v0.3: minitehtävät)
 
-Flirttaileva baarin vakiokävijä. Hän ei ole palkinto vaan pelin "pomomoodi": koko mittaristo pitää pitää kurissa samaan aikaan, kun hän tarjoaa lisää juotavaa.
+Flirttaileva baarin vakiokävijä. Humalassa pitää pysyä kuten ennenkin: hän kiinnostuu vain, kun olet **hauska eli kultaisella alueella** (et liian selvä etkä liian kännissä). Viiden tarjotun juoman voittoehto on poistettu – tilalla ovat minitehtävät.
 
-### 7.1 Tilakone
+### 7.1 Saapuminen ja läsnäolo
 
-| Tila | Sisään kun | Mitä tapahtuu | Ulos kun |
-|---|---|---|---|
-| **POISSA** | Pelin alku / jäähy ohi | Laskuri kerää aikaa kultaisella alueella | 20 s (kumulatiivisesti) alueella ja kello ≥ 21:00 → SAAPUU |
-| **SAAPUU** | Ehto täyttyi | 2 s animaatio, kaveri: "Katso, kuka tuli!" Kiinnostus = 30 | Automaattisesti → JUTTELU |
-| **JUTTELU** | Saapuminen / tarjous käsitelty | Kiinnostus +1/s alueella, −2/s alueen ulkopuolella. Voi tarjota snackin | 12 s kulunut → TARJOUS. Kiinnostus 0 → LÄHTEE YKSIN |
-| **TARJOUS** | 12 s juttelua | Puhekupla "Otetaanko yhdet?" + ✔/✖, 5 s aikaa | ✔ → HYVÄKSYTTY. ✖ / aikakatkaisu → KIELTÄYTY |
-| **HYVÄKSYTTY** | ✔ | Juoma tiskille, juodaan normaalisti. Kiinnostus +15, tarjouslaskuri +1 | Laskuri = 5 → LÄHTEE KANSSASI. Muuten → JUTTELU |
-| **KIELTÄYTY** | ✖ | Kiinnostus −10, promillet −0,10 ‰ ("tylsistyit") | Kiinnostus ≤ 0 → LÄHTEE YKSIN, muuten → JUTTELU |
-| **LÄHTEE YKSIN** | Kiinnostus 0 tai oksennus (ks. alla) | Hän lähtee, kiinnostus ja tarjouslaskuri nollautuvat | 30 s jäähy → POISSA |
-| **LÄHTEE KANSSASI** | 5 tarjousta juotu ilman oksennusta/sammumista/housuja | **Iso bonus, kierros päättyy** | – |
+| Parametri | Arvo |
+|---|---|
+| Saapuu | 20 s (kumulatiivisesti) kultaisella alueella ja kello ≥ 21:00 |
+| Esittäytyy | Kertoo nimensä heti ("Moi! Mä oon Riikka.") – muista se! |
+| Kiinnostus alussa | 30 (palatessa vähintään taso × 15) |
+| Kiinnostus alueella / ulkona | +0,5/s / −2/s |
+| Kiinnostus 0 | Hän lähtee, palaa 30 s jäähyn jälkeen kun olet taas alueella. **Saavutettu taso säilyy.** |
+| Vessa | Kiinnostus −5, ajastimet pysähtyvät |
+| Oksennus | Hän lähtee heti |
 
-**Erikoistapaukset:**
+**Kiinnostusmittari = pikkuhousut-ikoni**, joka kastuu sarjakuvamaisesti: *kuivat* (vaaleanpunaiset, < 34) → *kosteat* (tummempi sävy + pisara, 34–66) → *märät* (tumma + useita pisaroita, ≥ 67). Ei mitään graafista.
 
-- **Oksennus** naisen ollessa paikalla → LÄHTEE YKSIN (tarjouslaskuri nollautuu).
-- **Vessakäynti** naisen ollessa paikalla: sallittu, mutta kiinnostus −5 ("Älä oo kauaa!"). Tarjous ei vanhene vessassa ollessa, ajastin pysähtyy.
-- **Housut märkänä / sammuminen** → peli päättyy joka tapauksessa.
+### 7.2 Minitehtävät
 
-### 7.2 Naisen tarjoamat juomat
+Ensimmäinen tehtävä 5 s saapumisen jälkeen, sitten 8–13 s välein – **vain kultaisella alueella**. Pelimaailma (kello ja mittarit) pysähtyy tehtävän ajaksi. Tehtävä arvotaan viidestä. Vaikeus **d = 0…1** kasvaa promillejen mukaan kultaisen alueen alarajalta (0,8) ylärajalle (1,6): käsi heiluu, ajoitus kiristyy.
 
-| Tarjous # | Juoma | Huomio |
+| Tehtävä | Toiminta | Helppo (d=0) → vaikea (d=1) |
 |---|---|---|
-| 1 | Kalja | Helppo aloitus |
-| 2 | Drinkki | Hänen lempijuomansa: hyväksyminen +5 lisäkiinnostusta (yht. +20) |
-| 3 | Shotti | |
-| 4 | Whisky | Raskas, vie janoa – snack ennen tätä auttaa |
-| 5 | Tuplashotti (+0,40 ‰, rakko +5 %, jano −6) | Finaali – tähän pitää jättää promilleille tilaa |
+| **Vitsin ajoitus** 😂 | Osoitin liikkuu edestakaisin, napauta kun se on "hauska"-alueella | Alue 26 % → 12 %, nopeus 55 → 120 %/s, täriseminen 0 → 8 %, aikaraja 6 s |
+| **Skoolaus** 🥂 | Rengas kutistuu kohti katkoviivaa, napauta kun ne kohtaavat | Kesto 1,7 → 1,1 s, toleranssi 18 → 9 px, rengas heiluu 0 → 14 px |
+| **Tikanheitto** 🎯 | Tähtäin heiluu taulun päällä, heitä kun se on keskellä | Heilunta 35 → 85 px, nopeus 1,2 → 2,2, osuma ≤ 32 px keskeltä, aikaraja 7 s |
+| **Tanssi** 💃 | 2 mallitahtia, sitten 4 napautusta tahdissa, 3/4 riittää | Tahti 620 → 480 ms, toleranssi 150 → 90 ms, visuaalinen "humalaviive" 0 → 70 ms |
+| **Nimen muistaminen** 🧠 | Valitse hänen nimensä kolmesta | d ≥ 0,5: vaihtoehdot lähes samannäköisiä (Riikka/Riitta/Riina), sumeus 0 → 3 px, aikaraja 6 s |
 
-Naisen tarjoamat juomat lasketaan normaalisti juotuihin ja kasvattavat komboa.
+**Onnistuminen:** taso +1, kiinnostus +20, ääni + tärinä + hauska kommentti. **Epäonnistuminen:** kiinnostus −15 ja hänen hauska piikkinsä ("Tikka osui seinään. Baarimikko väistää."). Peli ei pääty.
 
----
+### 7.3 Tasot (onnistumisten määrä)
+
+| Taso | Nimi | Ele / kommentti | Palkinto | Pistekerroin |
+|---|---|---|---|---|
+| 0–1 | Ei kiinnostunut | 🙂 "Hän hymähtää." | – | ×1,0 |
+| 2 | Numero saatu | 📱 "Hän kirjoittaa numeronsa sun käteen!" | +300 p, voitte nähdä uudestaan | ×1,2 |
+| 3 | Läheisyyttä | 🤗 "Hän nojaa lähemmäs ja koskettaa käsivartta." | Tarjoaa välillä snackin tai drinkin | ×1,5 |
+| 4 | Pusu saatu | 💋 "MUAH! Koko baari viheltää." | +1 000 p | ×2,0 |
+| 5 | Pano onnistui | 🚕❤️ "Lähdetäänkö meille?" | +3 000 p + aikabonus, **ilta päättyy** | ×3,0 |
+
+Kaikki eleet ovat sarjakuvamaisia emojeja, ei mitään eksplisiittistä.
 
 ## 8. Kombot ja SKOOL!
 
@@ -258,7 +277,9 @@ Naisen tarjoamat juomat lasketaan normaalisti juotuihin ja kasvattavat komboa.
 | Vesi | Ei katkaise eikä kasvata komboa |
 | Kultainen alue -lisä | Kombokerroin +0,5, jos juoma juodaan alueella |
 
-**SKOOL! (valinnainen):** Ravista puhelinta 1 s sisällä kaljan viimeisestä hörpystä → +50 p ja seuraavan juoman hörpyt 30 % nopeampia. Asetuksista voi kytkeä pois (silloin bonusta ei saa, mutta mitään ei menetä muuten).
+**SKOOL!:** Ravista puhelinta (tai napauta SKOOL!-nappia) 2,5 s sisällä kaljan viimeisestä hörpystä → +50 p ja seuraavan juoman hörpyt 30 % nopeampia.
+
+**Ravistuksen tunnistus (v0.3):** `devicemotion` → ensisijaisesti `acceleration` (ilman painovoimaa), muuten `accelerationIncludingGravity`, josta painovoima poistetaan alipäästösuodattimella. Raja 13 m/s², 600 ms jäähy. Vaatii https:n (GitHub Pages OK). v1:n vika: raja 22 m/s² painovoiman kanssa ja vain 1 s ikkuna → käytännössä ei koskaan lauennut. Laitetesti-nappi (📳) näyttää, tuleeko anturidataa.
 
 ---
 
@@ -268,6 +289,7 @@ Vihjeet tulevat **kaverin / sisäisen äänen** puhekuplina (kaveri "Make"). Sam
 
 | # | Laukaisin | Teksti | Mittari / ilme |
 |---|---|---|---|
+| 0 | Pelin alku | "Etkot hoidettu, nyt mennään! Pidä promillet kultaisella alueella." | – |
 | 1 | Promillet < 0,5 ja kulunut > 10 s | "Oot ihan kuiva, kukaan ei naura sun jutuille. Tilaa jotain!" | Promillet vilkkuu sinisenä / tylsistynyt |
 | 2 | Ensimmäinen kerta kultaisella alueella | "Nyt sä oot tähti! Jatka samaa tahtia." | Kultainen hehku / leveä virne |
 | 3 | Promillet ≥ 1,8 | "Huone pyörii... ehkä vähän vettä?" | Keltainen vilkku / vihreä naama |
@@ -275,7 +297,6 @@ Vihjeet tulevat **kaverin / sisäisen äänen** puhekuplina (kaveri "Make"). Sam
 | 5 | Rakko ≥ 75 % | "Jalat ristissä, nyt vessaan tai housut kastuu!" | Rakko vilkkuu / kiemurtelu |
 | 6 | Rakko ≥ 90 % | "EI. ENÄÄ. YHTÄÄN. Vessa. NYT." | Nopea vilkku + värinä / tuskainen |
 | 7 | Jano < 15 | "Kalja ei maistu, kurkku kuin hiekkapaperia. Sipsiä!" | Jano vilkkuu / yskii |
-| 8 | Naisen kiinnostus +15 (hyväksytty tarjous) | "Hän nauroi sun vitsille!" | Sydän pomppaa / ylpeä |
 | 9 | Kello 01:50 | "Kymmenen minuuttia valomerkkiin!" | Kello vilkkuu |
 | 10 | Kombo 5 | "Rytmi on hallussa! Baarimikko nyökkää hyväksyvästi." | Kombo-teksti kultaa |
 | 11 | Kombo katkesi (≥ 3) | "Äh, rytmi meni. Uusi tuoppi alle!" | – / harmistunut |
@@ -284,10 +305,8 @@ Vihjeet tulevat **kaverin / sisäisen äänen** puhekuplina (kaveri "Make"). Sam
 | 14 | Sipsejä naisen edessä | "Vähän vähemmän rouskutusta, hän katsoo..." | Sydän himmenee |
 | 15 | Kulho täyttyi | "Kulho täynnä! Ilmaista suolaista!" | Kulho kimaltaa |
 | 16 | Nainen saapuu | "Katso, kuka tuli! Älä mokaa." | Sydänmittari ilmestyy |
-| 17 | Tarjous auki 3 s | "No otatko vai et? Hän odottaa!" | Kupla sykkii |
 | 18 | Kiinnostus < 20 | "Hän vilkuilee ovelle. Sano jotain hauskaa!" | Sydän vilkkuu |
 | 19 | Promillet putoaa alueelta alas naisen ollessa paikalla | "Sä alat olla tylsä. Shotti piristäis!" | Promillet vilkkuu |
-| 20 | Tarjous 4/5 hyväksytty | "Vielä yks ja te lähdette yhdessä!" | Sydän hehkuu |
 | 21 | Oksennuksen jälkeen | "No... ainakin nyt on tilaa uudelle." | Kalpea |
 | 22 | 1. oksennuksen jälkeen (heti #21:n perään) | "Se oli sun ainoo jokeri. Seuraava oksennus ja ilta on ohi." | Vatsamittari punaisella reunuksella loppuillan |
 | 23 | Ei juomaa 8 s (alueella) | "Tuoppi on tyhjä, kombo karkaa!" | Kombo-ajastin vilkkuu |
@@ -297,6 +316,10 @@ Vihjeet tulevat **kaverin / sisäisen äänen** puhekuplina (kaveri "Make"). Sam
 | 27 | Nainen paikalla, pelaaja tilaa drinkin | "Drinkki! Hän tykkää miehestä, jolla on makua." | Sydän pomppaa |
 | 28 | Promillet ≥ 1,9 ja vatsa ≥ 60, oksennus jo käytetty | "Muista: vain amatöörit oksentaa. Älä oo amatööri." | Vatsa vilkkuu / vihreä naama |
 | 29 | Kaksi whiskyä 20 s sisällä | "Hidasta, cowboy. Whisky ei oo kaljaa." | Promillet vilkkuu |
+| 30 | Alle alueen ennen naista | "Etkojen teho hiipuu. Tilaa kalja, nopeesti!" | – |
+| 31 | Ensimmäistä kertaa yli 1,35 ‰ | "Yläkulmilla! Mitä lähempänä rajaa, sitä enemmän pisteitä." | – |
+| 32 | Nainen paikalla, yli alueen | "Sä sammalat. Hän ei ymmärrä sanaakaan. Vettä!" | – |
+| 33 | Tehtävän tulos | Hänen puhekuplansa (vaaleanpunainen): tasokommentti tai hauska piikki | Pikkuhousut-ikoni |
 
 Päivä 1: vihjeet 1, 3, 5 ja 7 tulevat **ennen** varsinaista vaaraa (jo 10 % ennen rajaa ensimmäisellä kerralla), jotta uusi pelaaja oppii mittarit.
 
@@ -307,7 +330,7 @@ Päivä 1: vihjeet 1, 3, 5 ja 7 tulevat **ennen** varsinaista vaaraa (jo 10 % en
 | Ehto | Tyyppi | Pisteet |
 |---|---|---|
 | **Valomerkki 02:00** | Normaali loppu | Täydet pisteet + tähdet |
-| **Nainen lähtee kanssasi** | Paras loppu | Täydet pisteet + naisbonus + jäljellä olevan ajan bonus |
+| **Taso 5: Pano onnistui** | Paras loppu | Täydet pisteet × 3,0 + bonukset + jäljellä olevan ajan bonus |
 | **Sammuminen (≥ 2,8 ‰)** | Välitön loppu | Pisteet −30 %, enintään 1 tähti |
 | **Housut märkänä (rakko 100 %)** | Välitön loppu | Pisteet −30 %, enintään 1 tähti |
 | **Toinen oksennus (Päivä 1)** | Välitön loppu | Pisteet −30 %, enintään 1 tähti |
@@ -316,34 +339,54 @@ Jokaiselle loppumiselle oma hauska loppukuva (esim. hahmo nukkuu tiskillä naama
 
 ---
 
-## 11. Pisteytys
+## 11. Pisteytys (v0.3)
 
 **Kaava:**
 
 ```
-Pisteet = Σ (juoman perusarvo × kombokerroin)
-        + 10 × sekunnit kultaisella alueella
-        + SKOOL-bonukset (50 p / kpl)
-        + Naisbonus 1 500 p (jos lähtee kanssasi)
-        + Aikabonus 5 p × jäljellä olevat pelin minuutit (vain naisloppu)
-        − 200 p / oksennus
-        − snack-ostot (150 / 200 p)
-Lopuksi: × 0,7 jos peli päättyi sammumiseen, housuihin tai toiseen oksennukseen
+Pohja = Σ (juoman perusarvo × kombokerroin)
+      + Humalapisteet: Σ 40 × (min(‰, 1,6) / 1,6)² per sekunti   (integraali koko illan yli)
+      + SKOOL-bonukset (50 p / kpl)
+      + Naisbonukset (taso 2: +300, taso 4: +1 000, taso 5: +3 000)
+      + Aikabonus 5 p × jäljellä olevat pelin minuutit (vain taso 5 -loppu)
+      − 200 p / oksennus − snack-ostot (150 / 200 p)
+Pisteet = Pohja × tasokerroin (0–1: ×1,0 · 2: ×1,2 · 3: ×1,5 · 4: ×2,0 · 5: ×3,0)
+        × 0,7 jos peli päättyi sammumiseen, housuihin tai toiseen oksennukseen
 ```
+
+Humalapisteet palkitsevat siitä, että promillet pysyvät **lähellä kultaisen alueen yläreunaa** koko illan: koko ilta 1,6 ‰:ssa = 7 200 p, 1,2 ‰:ssa ≈ 4 050 p. Yli 1,6 ‰ ei anna lisää, vain riskiä.
 
 **Tähdet (Päivä 1):**
 
 | Tähdet | Raja | Mitä yleensä vaatii |
 |---|---|---|
-| ★ | 1 500 p | Selvisit valomerkkiin asti |
-| ★★ | 3 500 p | Hyvä rytmi ja paljon aikaa alueella |
-| ★★★ | 6 000 p | Käytännössä vaatii naisen lähtemään kanssasi |
+| ★ | 5 000 p | Selvisit valomerkkiin |
+| ★★ | 12 000 p | Hieno kännäilta ilman naista tai numero saatu |
+| ★★★ | 25 000 p | Kova humala koko illan + taso 4–5 |
 
-**Tarkistuslasku:** n. 18 juomaa (pääosin kaljaa, välissä whiskyä/drinkkejä) × keskiarvo ~105 p × keskikerroin ~2 ≈ 3 800 + 120 s alueella × 10 = 1 200 → n. 5 000 p ilman naista. Nainen tuo +1 500 p ja aikabonuksen → 3 tähteä mahdollista.
+**Testiajot (botti, v2):** pelkkä kalja ilman naista ≈ 11 000 p (★); taso 2 ≈ 14 000 p (★★); taso 5 ≈ 41 000 p (★★★).
 
-**Loppuruudun tilastot:** juodut kaljat/whiskyt/shotit/drinkit/vedet, pisin kombo, aika alueella, vessakäynnit, oksennukset, naisen tulos.
+**Loppuruutu:** saavutettu taso nimellä ("Numero saatu", "Pano onnistui"), tehtävät onnistui/yritetty, erittely (juomapisteet, humalapisteet + keskipromillet, SKOOL, naisbonukset, aikabonus, oksennukset, snackit, pohja, kerroin), juomat, pisin kombo, aika alueella, vessakäynnit.
 
----
+## 11b. Äänet ja haptiikka (v0.3)
+
+Kaikki äänet syntetisoidaan WebAudiolla (ei äänitiedostoja). Ääni avataan ensimmäisellä napautuksella (Aloita ilta). Mykistys 🔊/🔇.
+
+| Tapahtuma | Ääni | Tärinä (ms) |
+|---|---|---|
+| Tilaus | Pullon poksahdus (kalja/drinkki), kilahdus (muut) | 30 |
+| Hörppy | Kulaus | 10 |
+| Shotti juotu | Lasin pamaus tiskiin | – |
+| Kalja juotu | Röyhtäys (30 %) | – |
+| Vessa | Vessan veto | – |
+| Oksennus | Oksennus | 200-80-300 |
+| Varoitukset (vaara) | – | 60-60-60 |
+| Nainen saapuu / tehtävä | Kikatus | – |
+| Kombo ≥ 3 | Arpeggio | – |
+| SKOOL! | Sointu + hurraus | 50-30-50 |
+| Tehtävä onnistui / epäonnistui | Nouseva / laskeva sävel (+ pusu tasolla 4) | 40-40-40-40-120 / 300 |
+| Valomerkki | Kello ×3 | 100-100-100-100-300 |
+| Taustalla | Hiljainen baarin humina + puheensorina | – |
 
 ## 12. Vaikeus Päivän 1 sisällä
 
@@ -355,11 +398,13 @@ Päivä 1 on armollinen: leveä alue, hitaat mittarit, vihjeet ajoissa. Illan si
 | **Ruuhka** | 22:00–00:00 (60–120 s) | Kulho 40 s välein. Rakko passiivisesti +0,25 %/s. Nainen todennäköisesti paikalla |
 | **Loppukiri** | 00:00–02:00 (120–180 s) | Kombo-ikkuna 8 s. 01:00 tapahtuma "Viimeinen kierros": shotit tuplapisteillä 20 s ajan. 01:50 varoitus valomerkistä |
 
+Naisen tehtävät vaikeutuvat promillejen mukana (luku 7.2), eivät kellon mukaan.
+
 **Päivä 1 -turvaverkot:**
 
 - Ensimmäisellä kerralla rakko 100 %:ssa: armonaika 2 s, jossa vessaan ehtii vielä (vain kerran per kierros).
 - Ensimmäinen ylitys 2,5 ‰:n yli: hahmo "säpsähtää hereille" ja promillet −0,1 ‰ (vain kerran).
-- Tutoriaalikuplat kolmen ensimmäisen pelikerran aikana.
+- Tutoriaalikuplat kolmen ensimmäisen pelikerran aikana (ei vielä toteutettu; aloitusruudulla ohjeet).
 
 ---
 
@@ -388,7 +433,7 @@ Päivä 1 on armollinen: leveä alue, hitaat mittarit, vihjeet ajoissa. Illan si
 
 **Päätetty (suljetut kysymykset):**
 
-- **Naisen tarjoukset N = 5** – vahvistettu.
+- **Naisen voittoehto (v0.3):** 5 onnistunutta minitehtävää (korvaa 5 tarjottua juomaa).
 - **Oksennus Päivä 1:** yksi sallitaan, toinen lopettaa pelin. Myöhemmät päivät: jokainen oksennus lopettaa.
 - **Käyttö:** henkilökohtainen projekti, ei julkaisua → kauppapaikkojen säännöt, ikärajat, ansaintamalli ja alkoholin mainontalaki eivät koske tätä.
 - **Brändit:** ei brändejä, juomat geneerisiä (Kalja, Whisky, Shotti, Drinkki).
