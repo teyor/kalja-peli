@@ -1,6 +1,6 @@
 // KALJA! – Päivä 1, versio 2. Kaikki säädettävät arvot ovat CONFIGissa (ks. docs/kalja_paiva1_GDD.md).
 const CONFIG = {
-  version: 'v3',
+  version: 'v4',
   roundSeconds: 180, gameMinPerSec: 2, startHour: 20,
   promille: { start: 0.8, goldMin: 0.8, goldMax: 1.6, warn: 1.8, vomitBase: 2.0, passWarn: 2.5, passOut: 2.8, max: 3.0,
               recBase: 0.010, recPerPromille: 0.005 },
@@ -60,6 +60,7 @@ const CONFIG = {
   fx: { swayFrom: 0.6, swayDegPerPromille: 4.0, swayPxPerPromille: 14, ghostFrom: 1.3, ghostPxPerPromille: 14,
         blurFrom: 1.9, blurPxPerPromille: 2.0, tapMissFrom: 2.2, tapMissChance: 0.15 },
   audio: { master: 0.6, ambience: 0.05 },
+  voice: { volume: 0.8, cooldownSec: 1.2, kindCooldown: { sigh:8, aah:4, yuck:3, hello:5, giggle:1.5 } },  // naisen ääni: volume 0 = pois
   haptics: { drink:30, sip:10, vomit:[200,80,300], warn:[60,60,60], success:[40,40,40,40,120], fail:[300], shake:[50,30,50], bell:[100,100,100,100,300] },
 };
 
@@ -116,6 +117,66 @@ function ambienceStart(){
   s.buffer=b; s.loop=true; f.type='lowpass'; f.frequency.value=500; g.gain.value=CONFIG.audio.ambience; s.connect(f); f.connect(g); g.connect(AU.master); s.start(); AU.amb={s,g};
   AU.murmur=setInterval(()=>{ if(S&&!S.over&&!AU.muted&&Math.random()<0.5){ tone(rnd(140,260),rnd(0.15,0.4),{vol:0.015,type:'triangle',to:rnd(120,240)}); if(Math.random()<0.15) tone(rnd(2500,3500),0.05,{vol:0.01}); } },400);
 }
+// ================= NAISEN ÄÄNI (formanttisynteesi, ei tiedostoja) =================
+// Lähde: pehmeä glottaalinen aalto (harmoniset 1/n^1.6) + vibrato + hengitys­kohina -> 3 rinnakkaista formanttisuodinta (naisen vokaalit).
+const VOWELS = { a:[850,1220,2810], o:[560,920,2700], u:[370,950,2670], i:[320,2700,3300], e:[560,2300,2950], ae:[760,1900,2850], m:[260,1800,2700] };
+const VGAIN = { a:1.0, o:1.1, u:1.4, i:2.8, e:1.8, ae:1.4, m:0.4 };  // vokaalien äänekkyyden tasaus
+const VOICE = { bus:null, wave:null, last:0, lastPrio:0, lastKind:{}, on: localStorage.getItem('kalja_voice')!=='0' };
+function voiceInit(){
+  if(!AU.ctx || VOICE.bus) return; const c=AU.ctx; VOICE.bus=c.createGain(); VOICE.bus.gain.value=VOICE.on?CONFIG.voice.volume:0;
+  const comp=c.createDynamicsCompressor(); comp.threshold.value=-18; comp.ratio.value=4; VOICE.bus.connect(comp); comp.connect(AU.master);
+  const N=40, re=new Float32Array(N), im=new Float32Array(N); for(let n=1;n<N;n++){ im[n]=1/Math.pow(n,1.6); } VOICE.wave=c.createPeriodicWave(re,im);
+}
+// syl: {v, d (s), f0:[alku, (keski), loppu], vol, br (hengitys 0..1), at, glide (vokaali johon liukuu), trem (Hz, nauru/inho)}
+function syl(s){
+  const c=AU.ctx, t0=c.currentTime+(s.at||0), d=s.d, vol=(s.vol??0.5)*VGAIN[s.v], br=s.br??0.15;
+  const out=c.createGain(); out.connect(VOICE.bus);
+  const env=out.gain; env.setValueAtTime(0.0001,t0); env.exponentialRampToValueAtTime(vol,t0+Math.min(0.04,d*0.3)); env.setValueAtTime(vol,t0+d*0.6); env.exponentialRampToValueAtTime(0.0001,t0+d);
+  const F=VOWELS[s.v], G=s.glide?VOWELS[s.glide]:null, nasal=s.v==='m';
+  const filters=F.map((f,i)=>{ const b=c.createBiquadFilter(); b.type='bandpass'; b.frequency.setValueAtTime(f,t0); if(G) b.frequency.linearRampToValueAtTime(G[i],t0+d*0.8);
+    b.Q.value=[6,9,11][i]; const g=c.createGain(); g.gain.value=nasal?[1.6,0.08,0.04][i]:[1.4,0.8,0.35][i]; b.connect(g); g.connect(out); return b; });
+  // ääni­huulten värähtely
+  const o=c.createOscillator(); o.setPeriodicWave(VOICE.wave); const f=s.f0; o.frequency.setValueAtTime(f[0],t0);
+  if(f.length===3){ o.frequency.linearRampToValueAtTime(f[1],t0+d*0.45); o.frequency.linearRampToValueAtTime(f[2],t0+d); } else o.frequency.linearRampToValueAtTime(f[1]??f[0],t0+d);
+  const vib=c.createOscillator(), vg=c.createGain(); vib.frequency.value=5.5+Math.random(); vg.gain.value=f[0]*0.018; vib.connect(vg); vg.connect(o.frequency);
+  const vs=c.createGain(); vs.gain.value=(1-br)*(nasal?0.9:0.6); o.connect(vs);
+  let dst=vs; if(s.trem){ const tg=c.createGain(), lfo=c.createOscillator(), lg=c.createGain(); lfo.frequency.value=s.trem; lg.gain.value=0.5; tg.gain.value=0.5; lfo.connect(lg); lg.connect(tg.gain); vs.connect(tg); dst=tg; lfo.start(t0); lfo.stop(t0+d+0.05); }
+  // hengitys
+  const nz=c.createBufferSource(); nz.buffer=noiseBuf(d+0.05); const ng=c.createGain(); ng.gain.value=br*0.9; nz.connect(ng);
+  filters.forEach(b=>{ dst.connect(b); ng.connect(b); });
+  if(nasal){ const lp=c.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=400; dst.connect(lp); lp.connect(out); }
+  [o,vib,nz].forEach(n=>{ n.start(t0); n.stop(t0+d+0.05); });
+}
+function hBreath(at, d, vol, v='a'){ vol*=2.2; const c=AU.ctx, t0=c.currentTime+at, F=VOWELS[v], nz=c.createBufferSource(), g=c.createGain(); nz.buffer=noiseBuf(d+0.05);
+  g.gain.setValueAtTime(0.0001,t0); g.gain.exponentialRampToValueAtTime(vol,t0+d*0.25); g.gain.exponentialRampToValueAtTime(0.0001,t0+d); nz.connect(g);
+  F.forEach((f,i)=>{ const b=c.createBiquadFilter(); b.type='bandpass'; b.frequency.value=f; b.Q.value=4; g.connect(b); b.connect(VOICE.bus); }); nz.start(t0); nz.stop(t0+d+0.05); }
+const VOICES = {
+  hello(){ hBreath(0,0.06,0.2,'e'); syl({v:'e',glide:'i',d:0.42,f0:[300,430,360],vol:0.5,br:0.2}); VOICES.giggle(0.4,0.5); },
+  giggle(q=0.6, at=0){ const n=3+Math.round(q*3), base=380+q*120; for(let i=0;i<n;i++){ const a=at+i*0.13; hBreath(a,0.04,0.25*q+0.1,'i');
+    syl({v:i%2?'e':'i',d:0.09,f0:[base-i*14+15,base-i*14],vol:0.25+0.25*q,br:0.35,at:a+0.03}); } },
+  ooh(q=0.8){ syl({v:'o',glide:'u',d:0.65,f0:[270,410+q*60,330],vol:0.55,br:0.3}); },
+  hmph(){ hBreath(0,0.12,0.35,'m'); syl({v:'m',d:0.28,f0:[270,195],vol:0.55,br:0.25,at:0.06}); hBreath(0.3,0.25,0.25,'m'); },
+  sigh(){ hBreath(0,0.3,0.4,'a'); syl({v:'a',glide:'o',d:0.8,f0:[250,210,175],vol:0.7,br:0.55,at:0.12}); },
+  mmm(){ syl({v:'m',d:0.75,f0:[230,300,255],vol:0.55,br:0.12}); },
+  smack(){ noise(0.05,{type:'highpass',f:2500,vol:0.45}); syl({v:'m',glide:'a',d:0.32,f0:[320,290],vol:0.45,br:0.25,at:0.06}); noise(0.04,{type:'highpass',f:3000,vol:0.35,at:0.4}); },
+  aah(wet){ const f=wet/100; syl({v:'a',glide:'o',d:0.55+0.35*f,f0:[230+80*f,300+140*f,240+60*f],vol:0.5+0.45*f,br:0.6-0.3*f}); },
+  squeal(){ syl({v:'i',d:0.42,f0:[560,920,720],vol:0.5,br:0.15}); VOICES.giggle(0.9,0.45); },
+  yuck(){ syl({v:'i',glide:'ae',d:0.55,f0:[330,260,210],vol:0.55,br:0.3,trem:28}); hBreath(0.55,0.2,0.2,'ae'); },
+  delighted(){ syl({v:'o',glide:'u',d:0.5,f0:[280,480,430],vol:0.55,br:0.25}); syl({v:'i',d:0.45,f0:[600,880,760],vol:0.5,br:0.15,at:0.5}); VOICES.giggle(1,0.95); VOICES.aah(100, 0); }
+};
+VOICES.aah0=VOICES.aah;
+// prio: 1 = pieni, 2 = normaali, 3 = tärkeä (tasonnousu). Jäähy estää päällekkäisyyden.
+function voice(kind, prio=2, ...args){
+  try{
+    if(!AU.ctx || AU.muted || !VOICE.on) return; voiceInit();
+    const V=CONFIG.voice, now=performance.now()/1000;
+    if(now-VOICE.last < V.cooldownSec && prio<=VOICE.lastPrio) return;
+    if(V.kindCooldown[kind] && now-(VOICE.lastKind[kind]||-99) < V.kindCooldown[kind]) return;
+    VOICE.last=now; VOICE.lastPrio=prio; VOICE.lastKind[kind]=now; (window.VOICELOG=window.VOICELOG||[]).push(kind);
+    if(kind==='aah') VOICES.aah(...args); else VOICES[kind](...args);
+  }catch(e){ (window.ERR||[]).push('voice:'+e.message); }
+}
+function setVoice(on){ VOICE.on=on; localStorage.setItem('kalja_voice',on?'1':'0'); if(VOICE.bus) VOICE.bus.gain.value=on?CONFIG.voice.volume:0; $('vtoggle').textContent=on?'💋':'🚫'; }
 function setMute(m){ AU.muted=m; localStorage.setItem('kalja_mute',m?'1':'0'); if(AU.master) AU.master.gain.value=m?0:CONFIG.audio.master; $('mute').textContent=m?'🔇':'🔊'; }
 
 // ================= HAPTIIKKA =================
@@ -163,7 +224,7 @@ function canAct(){ return !S.over && S.away<=0 && S.busy<=0 && !S.task; }
 function order(kind, free){
   if(S.over || S.away>0 || S.task) return;
   if(S.glass || S.ordering>0) return;
-  if(kind==='drinkki' && womanPresent()){ S.w.interest+=CONFIG.drinks.drinkki.womanInterest; hint(27,'Drinkki! Hän tykkää miehestä, jolla on makua.'); }
+  if(kind==='drinkki' && womanPresent()){ S.w.interest+=CONFIG.drinks.drinkki.womanInterest; hint(27,'Drinkki! Hän tykkää miehestä, jolla on makua.'); voice('mmm',1); }
   if(kind==='kalja'||kind==='drinkki') sfx('pop'); else if(kind==='vesi') sfx('click'); else tone(1800,0.05,{vol:0.08,type:'triangle'});
   buzz('drink');
   S.ordering=free?0.01:CONFIG.orderSec; S.pendingDrink=kind;
@@ -233,7 +294,7 @@ function vomit(){
   if(S.vomits>V.allowed){ end('oksennus'); return; }
   S.away=V.animSec; S.awayKind='vomit';
   S.drinksCount=Math.max(0,S.drinksCount-V.drinksLost); S.combo=0; S.comboEnd=null; S.p+=V.promille; S.stomach=0; S.penaltyPts-=V.points; S.glass=null; S.absorb=S.absorb.filter(a=>a.rate<0);
-  if(womanPresent()){ womanLeave(); }
+  if(womanPresent()){ setTimeout(()=>voice('yuck',3),600); womanLeave(); }
   hint(21,'No... ainakin nyt on tilaa uudelle.',3);
   S.pendingHint22=S.t+CONFIG.hints.showSec+0.6;
   $('sbar').classList.add('redborder');
@@ -247,7 +308,8 @@ function addWet(v){
   let lv=w.level; while(lv<W.levels.length-1 && w.interest>=W.levels[lv+1].at) lv++;
   w.maxWet=Math.max(w.maxWet||0,w.interest);
   if(lv>w.level){ w.level=lv; const L=W.levels[lv]; if(L.bonus) S.bonusPts+=L.bonus;
-    if(lv===4) sfx('kiss'); sfx('success'); buzz('success'); S.hintUntil=0;
+    sfx('success'); buzz('success'); S.hintUntil=0;
+    setTimeout(()=>{ if(S.over&&lv<5) return; if(lv===1) voice('mmm',3); else if(lv===2){ voice('ooh',3,0.9); setTimeout(()=>voice('giggle',3,0.8),700); } else if(lv===3){ voice('mmm',3); setTimeout(()=>voice('aah',3,w.interest),800); } else if(lv===4) voice('smack',3); else if(lv>=5) voice('delighted',4); },1000);
     hint('lvl'+lv, `${L.text}${L.bonus?' +'+L.bonus+' p':''}  (×${CONFIG.score.levelMult[lv]})`, 5, 'woman'); S.hintUntil=S.t+3;
     if(lv>=W.levels.length-1){ S.leaving=true; setTimeout(()=>end('nainen'),1500); }
     return true; }
@@ -257,7 +319,7 @@ function updateWoman(dt, z){
   const W=CONFIG.woman, w=S.w;
   if(w.state==='POISSA'){ if(z) w.zoneAcc+=dt; const hour=CONFIG.startHour+S.t*CONFIG.gameMinPerSec/60;
     if(w.zoneAcc>=W.arriveZoneSec && hour>=W.arriveHour){
-      w.state='PAIKALLA'; w.interest=Math.max(W.startWet, W.levels[w.level].at*0.8); w.taskTimer=W.firstTaskSec; w.perkTimer=W.perkEvery; sfx('giggle');
+      w.state='PAIKALLA'; w.interest=Math.max(W.startWet, W.levels[w.level].at*0.8); w.taskTimer=W.firstTaskSec; w.perkTimer=W.perkEvery; voice('hello',3);
       if(!w.met){ w.met=true; const gi=Math.floor(Math.random()*W.names.length); w.nameGroup=gi; w.name=W.names[gi][Math.floor(Math.random()*3)];
         S.hintUntil=0; hint('name',`Moi! Mä oon ${w.name}. Sä näytät hauskalta.`,4,'woman'); S.hintUntil=S.t+3.5; }
       else { S.hintUntil=0; hint('back','Ai sä oot vielä täällä? Hyvä! 😏',4,'woman'); }
@@ -265,10 +327,10 @@ function updateWoman(dt, z){
   if(w.state==='LAHTEE'){ w.timer-=dt; if(w.timer<=0) w.state='POISSA'; return; }
   if(S.away>0 && S.awayKind==='wc') return;
   addWet((z?W.upInZone:-W.downOutZone)*dt); if(S.leaving) return;
-  if(!z && S.p<CONFIG.promille.goldMin) hint(19,'Sä alat olla tylsä. Kalja piristäis!');
-  if(!z && S.p>CONFIG.promille.goldMax) hint('toodrunk','Sä sammalat. Hän ei ymmärrä sanaakaan. Vettä!');
+  if(!z && S.p<CONFIG.promille.goldMin){ hint(19,'Sä alat olla tylsä. Kalja piristäis!'); voice('sigh',1); }
+  if(!z && S.p>CONFIG.promille.goldMax){ hint('toodrunk','Sä sammalat. Hän ei ymmärrä sanaakaan. Vettä!'); voice('sigh',1); }
   if(w.interest<8) hint(18,'Hän vilkuilee ovelle. Sano jotain hauskaa!');
-  if(w.interest<=0){ womanLeave(); hint('left','Ja sinne hän meni... Ehkä hän palaa.',2); sfx('fail'); return; }
+  if(w.interest<=0){ womanLeave(); hint('left','Ja sinne hän meni... Ehkä hän palaa.',2); sfx('fail'); voice('hmph',3); return; }
   if(w.level>=3){ w.perkTimer-=dt; if(w.perkTimer<=0 && canAct()){ w.perkTimer=W.perkEvery;
     if(!S.glass && S.ordering<=0 && Math.random()<0.5){ order('drinkki',true); hint('perkd','Mä tarjoon tän. Kippis, komistus! 🍹',2,'woman'); }
     else { eat('pahkinat',true); hint('perks','Ota pähkinöitä, sä tarviit voimia 😉',2,'woman'); } } }
@@ -281,7 +343,7 @@ function startTask(){
   const types=Object.keys(TASK_TITLES); const type=window.FORCE_TASK||types[Math.floor(Math.random()*types.length)];
   const k={type, d:drunkD(), el:0, done:false, phase:'count', cd:CONFIG.woman.countdownSec, lastBeep:-1};
   $('task').style.display='flex'; $('ttitle').textContent=TASK_TITLES[type]; $('tbody').innerHTML='<div class="countdown" id="tcd"></div>'; $('tbody').style.filter='';
-  $('thint').textContent=TASK_HELP[type]; sfx('giggle');
+  $('thint').textContent=TASK_HELP[type]; voice('giggle',1,0.3);
   S.task=k; S.w.typesSeen=S.w.typesSeen||{}; S.w.countdowns=(S.w.countdowns||0)+1;
 }
 function setupTask(k){
@@ -350,11 +412,14 @@ function taskResult(q, failText){
   w.tasksDone++; w.byType[k.type]=(w.byType[k.type]||0)+1; w.qSum=(w.qSum||0)+q;
   $('task').style.display='none'; S.task=null; w.taskTimer=rnd(W.taskEveryMin,W.taskEveryMax); S.hintUntil=0;
   if(q>0){ w.tasksWon++; const gain=Math.round(q*W.taskWetMax);
-    sfx('giggle'); if(q>=0.7){ sfx('success'); buzz('success'); } else buzz('drink');
+    if(q>=0.7){ sfx('success'); buzz('success'); } else buzz('drink');
+    const perfect=(k.type==='tikka'&&k.score===10)||(k.type==='skoolaus'&&q>=0.9)||q>=0.95;
+    if(perfect) voice('squeal',2); else if(q>=0.7) voice('ooh',2,q); else voice('giggle',2,q);
     const extra=k.type==='tikka'?(k.score===10?' NAPAKYMPPI! 🎯':` ${k.score} pistettä.`):'';
     hint('tok'+w.tasksDone, `${Q_TEXT(q)}${extra} +${gain} 💦`, 4, 'woman');
-    if(!addWet(gain) && k.type==='tikka' && k.score===10) flash('#ff4f8b');
-  } else { sfx('fail'); buzz('fail'); hint('tfail'+w.tasksDone, (failText||'Hups.')+` ${W.failWet} 💦`, 4, 'woman'); addWet(W.failWet);
+    const lvUp=addWet(gain); if(!lvUp && k.type==='tikka' && k.score===10) flash('#ff4f8b');
+    if(!lvUp && w.interest>=34) setTimeout(()=>voice('aah',1,w.interest),1300);  // huokaukset voimistuvat kosteuden myötä
+  } else { sfx('fail'); buzz('fail'); voice('hmph',2); hint('tfail'+w.tasksDone, (failText||'Hups.')+` ${W.failWet} 💦`, 4, 'woman'); addWet(W.failWet);
     if(w.interest<=0){ womanLeave(); } }
 }
 
@@ -498,6 +563,7 @@ document.querySelectorAll('#buttons button[data-d],#buttons button[data-s]').for
 tap($('glass'),sip); tap($('bowl'),eatBowl); tap($('wc'),toilet); tap($('skool'),doSkool);
 tap($('tbody'),e=>{ const r=$('tbody').getBoundingClientRect(); taskTap(e.clientX-r.left,e.clientY-r.top); });
 tap($('mute'),()=>setMute(!AU.muted));
+tap($('vtoggle'),()=>{ setVoice(!VOICE.on); if(VOICE.on){ audioInit(); voice('giggle',4,0.7);} });
 // Ravistus: ensisijaisesti e.acceleration (ilman painovoimaa), muuten accelerationIncludingGravity - alipäästösuodatettu painovoima.
 const MOTION={events:0, max:0, grav:null, lastShake:0, src:'-'};
 function onMotion(e){
@@ -516,19 +582,21 @@ tap($('vtest'),()=>{ buzz('success'); sfx('success');
   S.hintUntil=0; S.hintLast={}; hint('vtest',msg,5); S.hintUntil=S.t+5; });
 
 function start(){
-  audioInit(); ambienceStart();
+  audioInit(); voiceInit(); ambienceStart();
   if(typeof DeviceMotionEvent!=='undefined' && typeof DeviceMotionEvent.requestPermission==='function') DeviceMotionEvent.requestPermission().catch(()=>{});
   S=newState(); fillBowl(); last=null; lastPanties=''; $('overlay').style.display='none'; $('sbar').classList.remove('redborder'); $('task').style.display='none';
   sfx('pop'); buzz('drink');
   hint('start','Etkot hoidettu, nyt mennään! 🍺 Pidä promillet kultaisella alueella.',3);
 }
 function intro(){
-  S=newState(); fillBowl(); render(); S.over=true; setMute(AU.muted);
+  S=newState(); fillBowl(); render(); S.over=true; setMute(AU.muted); setVoice(VOICE.on);
   $('panel').innerHTML=`<h1>🍺 KALJA!</h1><h3>Päivä 1 – Perjantai-ilta <small>(${CONFIG.version})</small></h3><p style="text-align:left;font-size:14px">
   • Tilaa juoma alhaalta, napauta lasia = hörppy.<br>• Pidä <b style="color:#ffb300">promillet kultaisella alueella</b> (0,8–1,6‰). Mitä lähempänä yläreunaa, sitä enemmän pisteitä – mutta älä sammu!<br>
   • Kalja pitää tasaisena mutta kusettaa, whisky kuivattaa, shotti nousee ja laskee nopeasti.<br>• 🚻 ennen kuin housut kastuu. Snackit (🥣 ilmainen kulho) pitävät janon yllä.<br>
   • Kun olet hauska (alueella), <b>nainen</b> antaa minitehtäviä (3-2-1!). Mitä paremmin onnistut, sitä märemmät pikkuhousut 💦. Läpimärät = hän lähtee mukaasi. Jokainen taso nostaa pistekerrointa.<br>
-  • Kaljan jälkeen SKOOL! (nappi tai ravista puhelinta).<br>• Yksi oksennus sallitaan. Valomerkki klo 02.</p><button id="go">ALOITA ILTA</button>`;
-  $('go').addEventListener('click',start); requestAnimationFrame(loop);
+  • Kaljan jälkeen SKOOL! (nappi tai ravista puhelinta).<br>• Yksi oksennus sallitaan. Valomerkki klo 02.</p><button id="go">ALOITA ILTA</button><br><button id="vdemo" style="font-size:14px;padding:8px 14px;background:#ff8fb8">💋 Kuuntele hänen äänensä</button> <span id="vdemoname" style="font-size:12px"></span>`;
+  $('go').addEventListener('click',start);
+  let di=0; const demo=['hello','giggle','ooh','mmm','aah','smack','squeal','hmph','sigh','yuck','delighted'];
+  $('vdemo').addEventListener('click',()=>{ audioInit(); voiceInit(); const k=demo[di++%demo.length]; VOICE.last=0; VOICE.lastKind={}; voice(k,9,k==='aah'?80:0.8); $('vdemoname').textContent=k; }); requestAnimationFrame(loop);
 }
 intro();

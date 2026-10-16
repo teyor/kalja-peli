@@ -1,7 +1,9 @@
 # KALJA! – Päivä 1: Perjantai-ilta
-## Pelisuunnitteludokumentti (GDD) v0.4 (peliversio v3)
+## Pelisuunnitteludokumentti (GDD) v0.5 (peliversio v4)
 
-**Tekijä:** Teijo Rutanen | **Päivämäärä:** 11.10.2026 | **Versio:** v0.4 (16.10.2026, vastaa peliversiota v3) | **Laajuus:** Päivä 1 + lyhyt Päivä 2 -teaser
+**Tekijä:** Teijo Rutanen | **Päivämäärä:** 11.10.2026 | **Versio:** v0.5 (16.10.2026, vastaa peliversiota v4) | **Laajuus:** Päivä 1 + lyhyt Päivä 2 -teaser
+
+> **v0.5-muutokset:** naisen ääni­reaktiot (formanttisynteesi), oma 💋-kytkin ja voimakkuus CONFIGissa.
 
 > **v0.4-muutokset:** 3-2-1-laskenta ennen tehtäviä, tanssi osu!-tyyliin, skoolaus liukuvilla laseilla, tikanheitto ilman aikarajaa (7+ kelpaa), naisen eteneminen pikkuhousujen kosteuden mukaan (laatu 0–1 per tehtävä), nopeampi ja vahvempi humala, hitaampi palautuminen, tehtäviä useammin.
 
@@ -408,6 +410,31 @@ Kaikki äänet syntetisoidaan WebAudiolla (ei äänitiedostoja). Ääni avataan 
 | Tehtävä onnistui / epäonnistui | Nouseva / laskeva sävel (+ pusu tasolla 4) | 40-40-40-40-120 / 300 |
 | Valomerkki | Kello ×3 | 100-100-100-100-300 |
 | Taustalla | Hiljainen baarin humina + puheensorina | – |
+
+## 11c. Naisen ääni (v0.5)
+
+Naisen reaktiot syntetisoidaan **formanttisynteesillä** WebAudiolla (ei äänitiedostoja): pehmeä glottaalinen aalto + vibrato + hengityskohina kolmen formanttisuotimen läpi (naisen vokaalit a/o/u/i/e/ä + nasaali "m"). Sävy on kevyt ja flirttaileva, ei eksplisiittinen.
+
+| Tapahtuma | Ääni |
+|---|---|
+| Hän saapuu / palaa | "Hei~" + pieni kikatus |
+| Tehtävä alkaa | Hiljainen kikatus |
+| Tehtävä onnistui, laatu < 0,7 | Kikatus (pituus ja voimakkuus laadun mukaan) |
+| Tehtävä onnistui, laatu ≥ 0,7 | "Oooh" (korkeus laadun mukaan) |
+| Täydellinen (napakymppi, skoolaus ≥ 0,9, laatu ≥ 0,95) | Kiljahdus + kikatus |
+| Kosteus ≥ 34 % onnistumisen jälkeen | Huokaus "aah", voimistuu ja nousee kosteuden myötä |
+| Epäonnistui / läikkyi | "Hmph" |
+| Taso 1 (kiinnostunut) | "Mmm" |
+| Taso 2 (numero) | "Oooh" + kikatus |
+| Taso 3 (läheisyyttä) | "Mmm" + huokaus |
+| Taso 4 (pusu) | Pusu "mwah" |
+| Taso 5 (pano) | "Ooh!" + kiljahdus + kikatus + huokaus |
+| Liian selvä / liian kännissä hänen seurassaan | Tylsistynyt huokaus |
+| Kosteus 0 → hän lähtee | "Hmph" |
+| Tilaat drinkin hänen seurassaan | "Mmm" |
+| Oksennat hänen seurassaan | "Yyh!" (inho) |
+
+**Säädöt:** `CONFIG.voice = { volume: 0.8, cooldownSec: 1.2, kindCooldown: {sigh:8, aah:4, yuck:3, hello:5, giggle:1.5} }`. Ääni ei soi, jos edellinen on alle 1,2 s vanha ja yhtä tai vähemmän tärkeä, eikä sama ääni toistu omaa jäähyään useammin. Yläpalkin 💋/🚫 kytkee pelkän naisen äänen pois (muistetaan), 🔊/🔇 mykistää kaiken. Aloitusruudun "Kuuntele hänen äänensä" -napilla voi kuunnella kaikki äänet vuorotellen.
 
 ## 12. Vaikeus Päivän 1 sisällä
 
